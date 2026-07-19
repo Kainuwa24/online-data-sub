@@ -1,0 +1,59 @@
+services:
+  - type: web
+    name: online-data-sub
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npx prisma generate && npm run build
+    preDeployCommand: npx prisma db push
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: online-data-sub-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: ASBDATA_BASE_URL
+        value: https://asbdata.com
+      - key: ASBDATA_TOKEN
+        sync: false
+      - key: ASBDATA_AIRTIME_TYPE
+        value: VTU
+      - key: ASBDATA_PLATFORM_MARKUP_NGN
+        value: "0"
+      - key: TERMII_API_KEY
+        sync: false
+      - key: TERMII_SENDER_ID
+        value: OnlineDataSub
+      - key: PALMPAY_ENV
+        value: sandbox
+      - key: PALMPAY_APP_ID
+        sync: false
+      - key: PALMPAY_MERCHANT_PRIVATE_KEY
+        sync: false
+      - key: PALMPAY_PUBLIC_KEY
+        sync: false
+      - key: PALMPAY_MERCHANT_PUBLIC_KEY
+        sync: false
+      - key: PALMPAY_COUNTRY_CODE
+        value: NG
+      - key: PALMPAY_BANK_NAME
+        value: PalmPay
+      - key: GOLDAPI_KEY
+        sync: false
+      - key: USD_NGN_FALLBACK_RATE
+        value: "1600"
+      - key: REFERRAL_BONUS_KOBO
+        value: "50000"
+
+databases:
+  - name: online-data-sub-db
+    plan: basic-256mb
+    databaseName: online_data_sub
+    user: online_data_sub

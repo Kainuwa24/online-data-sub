@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  name            String
+  phone           String    @unique
+  pinHash         String
+  referralCode    String    @unique
+  referredBy      String?
+  email           String?
+  bvn             String?
+  nin             String?
+  phoneVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+
+  wallet          Wallet?
+  transactions    Transaction[]
+  notifications   Notification[]
+  virtualAccounts VirtualAccount[]
+}
+
+model Wallet {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // balance stored in kobo (1/100 naira) to avoid float rounding issues
+  balanceKobo Int      @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model Transaction {
+  id         String            @id @default(cuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       TransactionType
+  // "data" | "airtime" | "electricity" | "cable_tv" | "internet" | "wallet_funding" | "referral"
+  category   String
+  label      String
+  amountKobo Int
+  status     TransactionStatus @default(PENDING)
+  reference  String            @unique
+  // raw provider payload / request details, used for receipts + debugging
+  meta       Json?
+  createdAt  DateTime          @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  // "signup" | "reset_pin"
+  purpose   String
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone, purpose])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model Referral {
+  id         String   @id @default(cuid())
+  referrerId String
+  referredId String   @unique
+  bonusKobo  Int      @default(50000) // ₦500
+  createdAt  DateTime @default(now())
+}
+
+/// PalmPay (or other) permanent virtual account for wallet funding
+model VirtualAccount {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider         String   @default("palmpay")
+  accountNumber    String
+  bankName         String
+  accountName      String
+  accountReference String   @unique
+  isPermanent      Boolean  @default(true)
+  status           String   @default("ACTIVE")
+  raw              Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, provider])
+  @@index([accountNumber])
+}
+
+/// Idempotent provider webhook ledger (PalmPay orderNo, etc.)
+model ProviderEvent {
+  id              String    @id @default(cuid())
+  externalEventId String    @unique
+  provider        String
+  reference       String
+  status          String
+  failureReason   String?
+  payload         Json?
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([provider, reference])
+}
