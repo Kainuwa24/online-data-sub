@@ -1,20 +1,26 @@
+// Local development — SQLite (no Postgres server required).
+// Production (Render): use schema.postgres.prisma via npm run db:push:prod
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
   id              String    @id @default(cuid())
   name            String
-  phone           String    @unique
-  pinHash         String
+  /// Optional until Google user finishes /complete-profile
+  phone           String?   @unique
+  /// Optional until Google user finishes /complete-profile
+  pinHash         String?
   referralCode    String    @unique
   referredBy      String?
-  email           String?
+  email           String?   @unique
+  googleId        String?   @unique
   bvn             String?
   nin             String?
   phoneVerifiedAt DateTime?
@@ -35,31 +41,22 @@ model Wallet {
   updatedAt   DateTime @updatedAt
 }
 
-enum TransactionType {
-  DEBIT
-  CREDIT
-}
-
-enum TransactionStatus {
-  PENDING
-  SUCCESS
-  FAILED
-}
-
 model Transaction {
-  id         String            @id @default(cuid())
+  id         String   @id @default(cuid())
   userId     String
-  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type       TransactionType
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // DEBIT | CREDIT
+  type       String
   // "data" | "airtime" | "electricity" | "cable_tv" | "internet" | "wallet_funding" | "referral"
   category   String
   label      String
   amountKobo Int
-  status     TransactionStatus @default(PENDING)
-  reference  String            @unique
-  // raw provider payload / request details, used for receipts + debugging
-  meta       Json?
-  createdAt  DateTime          @default(now())
+  // PENDING | SUCCESS | FAILED
+  status     String   @default("PENDING")
+  reference  String   @unique
+  // JSON string for SQLite; Postgres schema uses Json
+  meta       String?
+  createdAt  DateTime @default(now())
 
   @@index([userId, createdAt])
 }
@@ -75,6 +72,18 @@ model OtpCode {
   createdAt DateTime @default(now())
 
   @@index([phone, purpose])
+}
+
+/// One-time email magic-link login tokens (store only the hash)
+model MagicLinkToken {
+  id        String   @id @default(cuid())
+  email     String
+  tokenHash String   @unique
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }
 
 model Notification {
@@ -109,7 +118,7 @@ model VirtualAccount {
   accountReference String   @unique
   isPermanent      Boolean  @default(true)
   status           String   @default("ACTIVE")
-  raw              Json?
+  raw              String? // JSON string
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -125,7 +134,7 @@ model ProviderEvent {
   reference       String
   status          String
   failureReason   String?
-  payload         Json?
+  payload         String? // JSON string
   processedAt     DateTime?
   createdAt       DateTime  @default(now())
 

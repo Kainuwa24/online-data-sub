@@ -3,7 +3,8 @@ import { getCurrentUser } from "@/lib/session";
 import { generateTxnReference } from "@/lib/auth";
 import { purchaseData } from "@/lib/services/asbdata";
 import { debitWallet, refundWallet, markTxnFailed } from "@/lib/wallet";
-import { normalizePhone, isValidNgPhone } from "@/lib/phone";
+import { validateNgPhone } from "@/lib/phone";
+import { verifyUserPin } from "@/lib/pin";
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
@@ -14,14 +15,22 @@ export async function POST(req: NextRequest) {
   const variationCode = String(body.variationCode || "");
   const planLabel = String(body.planLabel || "");
   const priceKobo = Number(body.priceKobo);
-  const recipientPhone = normalizePhone(String(body.recipientPhone || ""));
+  const phoneCheck = validateNgPhone(String(body.recipientPhone || ""), {
+    label: "Recipient number",
+  });
 
-  if (!network || !variationCode || !priceKobo || !recipientPhone) {
+  const pinError = await verifyUserPin(user, body.pin);
+  if (pinError) {
+    return NextResponse.json({ error: pinError }, { status: 401 });
+  }
+
+  if (!network || !variationCode || !priceKobo) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
-  if (!isValidNgPhone(recipientPhone)) {
-    return NextResponse.json({ error: "Invalid recipient phone number" }, { status: 400 });
+  if (!phoneCheck.ok) {
+    return NextResponse.json({ error: phoneCheck.error }, { status: 400 });
   }
+  const recipientPhone = phoneCheck.phone;
 
   const reference = generateTxnReference();
   const debit = await debitWallet({

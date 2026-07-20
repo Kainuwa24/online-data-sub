@@ -43,7 +43,7 @@ export async function debitWallet(params: {
           amountKobo: params.amountKobo,
           status: "SUCCESS",
           reference,
-          meta: (params.meta ?? {}) as object,
+          meta: params.meta ? JSON.stringify(params.meta) : null,
         },
       });
 
@@ -153,7 +153,7 @@ export async function creditWallet(params: {
           amountKobo: params.amountKobo,
           status: "SUCCESS",
           reference,
-          meta: (params.meta ?? {}) as object,
+          meta: params.meta ? JSON.stringify(params.meta) : null,
         },
       });
 
@@ -216,7 +216,7 @@ export async function markTxnFailed(reference: string, meta?: Record<string, unk
       where: { reference },
       data: {
         status: "FAILED",
-        meta: meta as object | undefined,
+        meta: meta ? JSON.stringify(meta) : null,
       },
     });
   } catch {

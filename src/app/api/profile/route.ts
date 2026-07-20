@@ -12,8 +12,15 @@ export async function GET() {
     phone: user.phone,
     email: user.email,
     referralCode: user.referralCode,
+    hasPin: Boolean(user.pinHash),
     hasBvn: Boolean(user.bvn && user.bvn.replace(/\D/g, "").length === 11),
     hasNin: Boolean(user.nin && user.nin.replace(/\D/g, "").length === 11),
+    profileComplete: Boolean(
+      user.phone &&
+        user.pinHash &&
+        ((user.bvn && user.bvn.replace(/\D/g, "").length === 11) ||
+          (user.nin && user.nin.replace(/\D/g, "").length === 11)),
+    ),
     // Masked for display
     bvnMasked: user.bvn ? `*******${user.bvn.slice(-4)}` : null,
     ninMasked: user.nin ? `*******${user.nin.slice(-4)}` : null,
@@ -56,5 +63,7 @@ export async function PATCH(req: NextRequest) {
     email: updated.email,
     hasBvn: Boolean(updated.bvn && updated.bvn.replace(/\D/g, "").length === 11),
     hasNin: Boolean(updated.nin && updated.nin.replace(/\D/g, "").length === 11),
+    bvnMasked: updated.bvn ? `*******${updated.bvn.slice(-4)}` : null,
+    ninMasked: updated.nin ? `*******${updated.nin.slice(-4)}` : null,
   });
 }

@@ -2,21 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { comparePin, signSession, generateOtpCode } from "@/lib/auth";
 import { setSessionCookie } from "@/lib/session";
-import { normalizePhone } from "@/lib/phone";
+import { validateNgPhone } from "@/lib/phone";
 import { sendOtpSms } from "@/lib/services/termii";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const phone = normalizePhone(String(body.phone || ""));
+  const phoneCheck = validateNgPhone(String(body.phone || ""));
   const pin = String(body.pin || "");
 
-  if (!phone || !pin) {
-    return NextResponse.json({ error: "phone and pin are required" }, { status: 400 });
+  if (!phoneCheck.ok) {
+    return NextResponse.json({ error: phoneCheck.error }, { status: 400 });
   }
+  if (!pin) {
+    return NextResponse.json({ error: "PIN is required" }, { status: 400 });
+  }
+  const phone = phoneCheck.phone;
 
   const user = await prisma.user.findUnique({ where: { phone } });
   if (!user) {
     return NextResponse.json({ error: "No account found for that phone number" }, { status: 404 });
+  }
+
+  if (!user.pinHash) {
+    return NextResponse.json(
+      { error: "This account uses Google sign-in. Finish setup or continue with Google." },
+      { status: 400 },
+    );
   }
 
   const valid = await comparePin(pin, user.pinHash);

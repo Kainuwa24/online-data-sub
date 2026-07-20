@@ -3,13 +3,16 @@
 // before relying on this for OTPs — the default generic route silently
 // skips numbers on Do-Not-Disturb and pauses on MTN between 8PM–8AM.
 
+import { toInternationalNg } from "@/lib/phone";
+
 const TERMII_BASE_URL = "https://api.ng.termii.com/api";
 
 export async function sendSms(phone: string, message: string) {
   const apiKey = process.env.TERMII_API_KEY;
+  const to = toInternationalNg(phone);
   if (!apiKey) {
     console.warn("[termii] TERMII_API_KEY not set — logging instead of sending");
-    console.log(`[termii:dev] would send to ${phone}: ${message}`);
+    console.log(`[termii:dev] would send to ${to}: ${message}`);
     return { simulated: true };
   }
 
@@ -18,7 +21,7 @@ export async function sendSms(phone: string, message: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       api_key: apiKey,
-      to: phone,
+      to,
       from: process.env.TERMII_SENDER_ID || "OnlineDataSub",
       sms: message,
       type: "plain",

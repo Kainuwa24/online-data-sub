@@ -10,8 +10,8 @@ import {
 import { creditWallet } from "@/lib/wallet";
 import { nairaToKobo } from "@/lib/money";
 
-function syntheticEmail(phone: string, userId: string) {
-  const digits = phone.replace(/\D/g, "").slice(-11) || userId.slice(-8);
+function syntheticEmail(phone: string | null | undefined, userId: string) {
+  const digits = (phone || "").replace(/\D/g, "").slice(-11) || userId.slice(-8);
   return `user${digits}@onlinedatasub.app`;
 }
 
@@ -31,6 +31,16 @@ function resolveIdentity(user: {
   return null;
 }
 
+function parseJsonField(raw: string | null | undefined): Record<string, unknown> {
+  if (!raw) return {};
+  try {
+    const v = JSON.parse(raw);
+    return typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
 function publicAccount(account: {
   provider: string;
   bankName: string;
@@ -39,12 +49,9 @@ function publicAccount(account: {
   accountReference: string;
   isPermanent: boolean;
   status: string;
-  raw?: unknown;
+  raw?: string | null;
 }) {
-  const raw = (account.raw && typeof account.raw === "object" ? account.raw : {}) as Record<
-    string,
-    unknown
-  >;
+  const raw = parseJsonField(account.raw);
   const kycIncomplete = !(raw.kycAttached === true || Boolean(raw.identityType));
   return {
     provider: account.provider,
@@ -113,10 +120,7 @@ export async function getOrCreatePalmPayAccount(
   const existing = await prisma.virtualAccount.findUnique({
     where: { userId_provider: { userId, provider: "palmpay" } },
   });
-  const raw = (existing?.raw && typeof existing.raw === "object" ? existing.raw : {}) as Record<
-    string,
-    unknown
-  >;
+  const raw = parseJsonField(existing?.raw);
   const existingIsDevOnly = raw.dev === true;
   const existingKycOk = raw.kycAttached === true || Boolean(raw.identityType);
 
@@ -162,6 +166,7 @@ export async function getOrCreatePalmPayAccount(
     identityType: identity.identityType,
   };
 
+  const rawJson = JSON.stringify(rawPayload);
   const account = await prisma.virtualAccount.upsert({
     where: { userId_provider: { userId, provider: "palmpay" } },
     create: {
@@ -173,7 +178,7 @@ export async function getOrCreatePalmPayAccount(
       accountReference: result.accountReference || reference,
       isPermanent: true,
       status: "ACTIVE",
-      raw: rawPayload,
+      raw: rawJson,
     },
     update: {
       accountNumber: result.accountNumber,
@@ -181,7 +186,7 @@ export async function getOrCreatePalmPayAccount(
       accountName: result.accountName || virtualAccountName,
       accountReference: result.accountReference || reference,
       status: "ACTIVE",
-      raw: rawPayload,
+      raw: rawJson,
     },
   });
 
@@ -252,7 +257,7 @@ export async function handlePalmPayWebhook(rawBody: string): Promise<{
         status: orderStatus,
         failureReason:
           orderStatus === "failed" ? "PalmPay virtual account funding failed." : null,
-        payload: body as object,
+        payload: JSON.stringify(body),
       },
     });
   } catch {

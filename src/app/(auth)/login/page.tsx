@@ -1,17 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { TextField } from "@/components/ui/TextField";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { PhoneField } from "@/components/ui/PhoneField";
 import { PinDots, NumPad } from "@/components/ui/PinPad";
+import { GoogleButton } from "@/components/auth/GoogleButton";
+import { MagicLinkForm } from "@/components/auth/MagicLinkForm";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { formatPhoneDisplay, isValidNgPhone } from "@/lib/phone";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const oauthError = searchParams.get("error") || "";
+
   const [step, setStep] = useState<"phone" | "pin">("phone");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(oauthError);
 
   async function submitPin(fullPin: string) {
     setError("");
@@ -40,44 +47,94 @@ export default function LoginPage() {
     if (next.length === 4) submitPin(next);
   }
 
+  if (step === "pin") {
+    return (
+      <AuthShell
+        eyebrow="Secure login"
+        title="Enter your PIN"
+        subtitle={`Confirm the 4-digit PIN for ${formatPhoneDisplay(phone)}`}
+      >
+        <PinDots length={4} filled={pin.length} />
+        <NumPad
+          onPress={press}
+          onBackspace={() => {
+            setPin(pin.slice(0, -1));
+            setError("");
+          }}
+        />
+        {error && (
+          <div className="text-center text-brand-red text-xs font-body mt-4 font-medium">{error}</div>
+        )}
+        <div className="text-center mt-5 space-y-2">
+          <a href="/forgot-pin" className="block text-brand-blue text-xs font-semibold font-body">
+            Forgot PIN?
+          </a>
+          <button
+            type="button"
+            onClick={() => {
+              setStep("phone");
+              setPin("");
+              setError("");
+            }}
+            className="text-brand-muted text-xs font-body"
+          >
+            ← Use a different number
+          </button>
+        </div>
+      </AuthShell>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col px-6 py-10 max-w-sm mx-auto">
-      <div className="text-2xl font-display font-extrabold mt-5">
-        {step === "phone" ? "Welcome back" : "Enter your PIN"}
+    <AuthShell
+      eyebrow="Welcome back"
+      title="Sign in"
+      subtitle="Google, email magic link, or phone + PIN."
+      footer={
+        <>
+          New here?{" "}
+          <a href="/signup" className="text-brand-blue font-semibold">
+            Create an account
+          </a>
+        </>
+      }
+    >
+      <GoogleButton label="Continue with Google" />
+
+      <div className="divider-or">
+        <span className="text-[11px] text-brand-muted font-body shrink-0">or magic link</span>
       </div>
-      <div className="text-sm text-gray-500 font-body mt-1">
-        {step === "phone"
-          ? "Log in to keep buying data, airtime and paying bills."
-          : `Confirm the PIN for ${phone}`}
+      <MagicLinkForm />
+
+      <div className="divider-or">
+        <span className="text-[11px] text-brand-muted font-body shrink-0">or phone</span>
       </div>
 
-      {step === "phone" ? (
-        <div className="mt-7">
-          <TextField label="Phone number" placeholder="080X XXX XXXX" value={phone} onChange={setPhone} />
-          <Button onClick={() => setStep("pin")} disabled={phone.length < 10}>
-            Continue
-          </Button>
-        </div>
-      ) : (
-        <div className="mt-8 flex-1 flex flex-col">
-          <PinDots length={4} filled={pin.length} />
-          <NumPad onPress={press} onBackspace={() => setPin(pin.slice(0, -1))} />
-          {error && <div className="text-center text-red-600 text-xs font-body mt-4">{error}</div>}
-          <div className="text-center mt-4">
-            <a href="/forgot-pin" className="text-brand-blue text-xs font-semibold font-body">
-              Forgot PIN?
-            </a>
-          </div>
-        </div>
+      <PhoneField label="Phone number" value={phone} onChange={setPhone} />
+      <Button
+        onClick={() => {
+          if (!isValidNgPhone(phone)) {
+            setError("Enter a valid Nigerian mobile number");
+            return;
+          }
+          setError("");
+          setStep("pin");
+        }}
+        disabled={!isValidNgPhone(phone)}
+      >
+        Continue with PIN
+      </Button>
+      {error && (
+        <div className="text-center text-brand-red text-xs font-body mt-3 font-medium">{error}</div>
       )}
+    </AuthShell>
+  );
+}
 
-      <div className="flex-1" />
-      <div className="text-center text-xs text-gray-500 font-body">
-        New here?{" "}
-        <a href="/signup" className="text-brand-blue font-semibold">
-          Create an account
-        </a>
-      </div>
-    </div>
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

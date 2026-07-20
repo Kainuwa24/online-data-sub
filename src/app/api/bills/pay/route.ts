@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/session";
 import { generateTxnReference } from "@/lib/auth";
 import { payBill } from "@/lib/services/asbdata";
 import { debitWallet, refundWallet, markTxnFailed } from "@/lib/wallet";
+import { verifyUserPin } from "@/lib/pin";
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
@@ -15,6 +16,11 @@ export async function POST(req: NextRequest) {
   const accountNumber = String(body.accountNumber || "").replace(/\s/g, "");
   const amountKobo = Number(body.amountKobo);
   const variationCode = body.variationCode ? String(body.variationCode) : undefined;
+
+  const pinError = await verifyUserPin(user, body.pin);
+  if (pinError) {
+    return NextResponse.json({ error: pinError }, { status: 401 });
+  }
 
   if (!serviceID || !accountNumber || !amountKobo) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

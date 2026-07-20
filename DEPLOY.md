@@ -1,71 +1,123 @@
-# Deploy Online Data Sub on Render
+# Deploy Online Data Sub (Render) — for PalmPay webhooks
 
-Single **Next.js** web service + **PostgreSQL**. Providers: **ASBDATA** (data/airtime/bills), **PalmPay** (wallet funding), **Termii** (OTP).
+PalmPay **cannot** call `localhost`. You need a public HTTPS URL.
 
-## 1. Push to GitHub
+## Why Render
+
+- Public URL: `https://online-data-sub.onrender.com` (or similar)
+- Postgres included via Blueprint
+- Webhook: `https://<your-service>.onrender.com/api/webhooks/palmpay`
+
+## 1. Commit & push to GitHub
 
 ```bash
-git init
-git add .
-git commit -m "Online Data Sub MVP"
-# create a GitHub repo, then:
-git remote add origin https://github.com/YOU/online-data-sub.git
+cd ~/online-data-sub
+git add -A
+git status   # confirm .env is NOT listed
+git commit -m "Ready for Render deploy (PalmPay webhooks)"
+```
+
+Create a repo on GitHub (empty), then:
+
+```bash
+git remote add origin https://github.com/YOUR_USER/online-data-sub.git
+git branch -M main
 git push -u origin main
 ```
 
-## 2. Blueprint deploy
+## 2. Deploy with Blueprint
 
-1. Render → **New +** → **Blueprint**
-2. Connect the repo; Render detects `render.yaml`
-3. Fill `sync: false` secrets when prompted
+1. Open [https://dashboard.render.com](https://dashboard.render.com)
+2. **New +** → **Blueprint**
+3. Connect the GitHub repo
+4. Render reads `render.yaml` (web + Postgres)
 
-### Required secrets
+### Env values Render will ask for (`sync: false`)
 
-| Variable | Notes |
-|----------|--------|
-| `NEXT_PUBLIC_APP_URL` | e.g. `https://online-data-sub.onrender.com` |
-| `ASBDATA_TOKEN` | From ASBDATA dashboard |
-| `TERMII_API_KEY` | OTP SMS |
-| `PALMPAY_APP_ID` | PalmPay merchant |
-| `PALMPAY_MERCHANT_PRIVATE_KEY` | RSA private key (PEM or base64) |
-| `PALMPAY_PUBLIC_KEY` | For webhook signature verify |
-| `PALMPAY_MERCHANT_PUBLIC_KEY` | If issued by PalmPay |
-| `GOLDAPI_KEY` | Optional for live gold |
+Fill these in the Blueprint form / Environment tab:
 
-`JWT_SECRET` and `DATABASE_URL` are set by the Blueprint.
+| Variable | Example / notes |
+|----------|------------------|
+| `NEXT_PUBLIC_APP_URL` | `https://online-data-sub.onrender.com` (use the real URL after first deploy if name differs) |
+| `ASBDATA_TOKEN` | Your ASBDATA token |
+| `PALMPAY_ENV` | `live` or `sandbox` |
+| `PALMPAY_APP_ID` | Merchant app id |
+| `PALMPAY_MERCHANT_PRIVATE_KEY` | Full private key (paste as one line or with `\n`) |
+| `PALMPAY_PUBLIC_KEY` | PalmPay public key for webhook verify |
+| `PALMPAY_MERCHANT_PUBLIC_KEY` | If PalmPay issued one |
+| `GOOGLE_CLIENT_ID` | Optional for Google login |
+| `GOOGLE_CLIENT_SECRET` | Optional |
+| `TERMII_API_KEY` | Optional until SMS works |
+| `RESEND_API_KEY` | Optional for magic link email |
+| `GOLDAPI_KEY` | Optional |
 
-## 3. After first deploy
+Auto-set by Blueprint: `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV`.
 
-1. Open `https://<service>.onrender.com/api/health` — should return `"ok": true`
-2. Set PalmPay webhook to:
+## 3. After deploy succeeds
+
+### 3.1 Health check
 
 ```text
-POST https://<service>.onrender.com/api/webhooks/palmpay
+https://YOUR-SERVICE.onrender.com/api/health
 ```
 
-3. Whitelist the Render **outbound/static IP** in PalmPay merchant console (VA create fails with “ip not in white list” otherwise)
-4. Switch `PALMPAY_ENV=live` only after sandbox works
-5. Confirm ASBDATA IP whitelist if required by their support
+Should return `"ok": true`.
 
-## 4. Smoke test
+### 3.2 Fix public URL + Google OAuth
 
-1. Sign up → OTP (Termii or console log if key missing) → login  
-2. Profile → add BVN or NIN  
-3. Wallet → create funding account → transfer (or use simulate only on local)  
-4. Buy data / airtime / pay a bill  
+1. In Render → Environment, set:
 
-## 5. Local development
-
-```bash
-cp .env.example .env
-# fill DATABASE_URL (local Postgres or Neon), JWT_SECRET, keys
-npm install
-npx prisma db push
-npm run dev
+```text
+NEXT_PUBLIC_APP_URL=https://YOUR-SERVICE.onrender.com
 ```
 
-Without provider keys the app simulates ASBDATA purchases and PalmPay remains disabled until keys are set. Dev wallet simulate: Wallet page → Credit (only when `NODE_ENV=development`).
+2. Redeploy (or “Manual Deploy”).
 
-## Cost note
+3. Google Cloud Console → OAuth client → add:
 
-Blueprint uses starter web + basic-256mb Postgres. Upgrade database before production money volume.
+```text
+Authorized JavaScript origins:
+  https://YOUR-SERVICE.onrender.com
+
+Authorized redirect URIs:
+  https://YOUR-SERVICE.onrender.com/api/auth/google/callback
+```
+
+### 3.3 PalmPay webhook (required for funding)
+
+In PalmPay merchant dashboard, register:
+
+```text
+POST https://YOUR-SERVICE.onrender.com/api/webhooks/palmpay
+```
+
+Response body must be plain text `success` (already implemented).
+
+### 3.4 PalmPay IP whitelist (required for VA create)
+
+VA create failed locally with `request ip not in ip white list`.  
+On Render, whitelist **Render outbound IPs** for your service/region in the PalmPay console.
+
+- Render docs: [Static outbound IP addresses](https://render.com/docs/static-outbound-ip-addresses)  
+- Starter plans may need the static IP add-on; free/shared IPs can change.
+
+Without whitelist, `/api/wallet/funding/account` keeps failing even with a public URL.
+
+## 4. Smoke test on production
+
+1. Open the site → sign up (Google/magic link/phone)  
+2. Complete profile (phone, BVN/NIN, PIN)  
+3. Wallet → **Create funding account**  
+4. Transfer small amount from your bank  
+5. Confirm wallet balance increases via webhook  
+6. Buy data with PIN confirm  
+
+## 5. Cost note
+
+Blueprint: web **starter** + Postgres **basic-256mb**.  
+Fine for testing webhooks; upgrade DB before real volume.
+
+## Local still useful
+
+Local `npm run dev` + **simulate funding** for UI/flows.  
+Real PalmPay credits only after deploy + webhook + IP whitelist.

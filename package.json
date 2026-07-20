@@ -8,8 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
+    "db:push:prod": "prisma db push --schema prisma/schema.postgres.prisma",
     "db:studio": "prisma studio",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "db:generate:prod": "prisma generate --schema prisma/schema.postgres.prisma",
+    "db:setup": "prisma db push && prisma generate"
   },
   "engines": {
     "node": ">=20"

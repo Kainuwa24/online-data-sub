@@ -6,23 +6,43 @@ export function TextField({
   value,
   onChange,
   type = "text",
+  error,
+  disabled,
+  readOnly,
+  helperText,
 }: {
   label: string;
   placeholder?: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
+  error?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  helperText?: string;
 }) {
   return (
-    <div className="mb-3.5">
-      <div className="mb-1.5 text-[11px] font-body text-gray-500">{label}</div>
+    <div className="mb-4">
+      <label className="mb-1.5 block text-[11px] font-semibold tracking-wide text-brand-muted font-body">
+        {label}
+      </label>
       <input
         type={type}
         placeholder={placeholder}
         value={value}
+        disabled={disabled}
+        readOnly={readOnly}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-gray-200 bg-white px-3.5 py-3 text-sm font-body text-gray-900 outline-none dark:bg-gray-900 dark:border-gray-700 dark:text-white"
+        aria-invalid={Boolean(error)}
+        className={`input-premium ${
+          error ? "!border-brand-red/50 focus:!border-brand-red focus:!ring-brand-red/15" : ""
+        } ${readOnly || disabled ? "opacity-70 bg-slate-50" : ""}`}
       />
+      {error ? (
+        <p className="mt-1.5 text-[11px] font-body text-brand-red font-medium">{error}</p>
+      ) : helperText ? (
+        <p className="mt-1.5 text-[11px] font-body text-brand-muted">{helperText}</p>
+      ) : null}
     </div>
   );
 }

@@ -3,7 +3,8 @@ import { getCurrentUser } from "@/lib/session";
 import { generateTxnReference } from "@/lib/auth";
 import { purchaseAirtime } from "@/lib/services/asbdata";
 import { debitWallet, refundWallet, markTxnFailed } from "@/lib/wallet";
-import { normalizePhone, isValidNgPhone } from "@/lib/phone";
+import { validateNgPhone } from "@/lib/phone";
+import { verifyUserPin } from "@/lib/pin";
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
@@ -12,17 +13,25 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const network = String(body.network || "");
   const amountKobo = Number(body.amountKobo);
-  const recipientPhone = normalizePhone(String(body.recipientPhone || body.phone || ""));
+  const phoneCheck = validateNgPhone(String(body.recipientPhone || body.phone || ""), {
+    label: "Recipient number",
+  });
 
-  if (!network || !amountKobo || !recipientPhone) {
+  const pinError = await verifyUserPin(user, body.pin);
+  if (pinError) {
+    return NextResponse.json({ error: pinError }, { status: 401 });
+  }
+
+  if (!network || !amountKobo) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
   if (amountKobo < 5000) {
     return NextResponse.json({ error: "Minimum airtime is ₦50" }, { status: 400 });
   }
-  if (!isValidNgPhone(recipientPhone)) {
-    return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
+  if (!phoneCheck.ok) {
+    return NextResponse.json({ error: phoneCheck.error }, { status: 400 });
   }
+  const recipientPhone = phoneCheck.phone;
 
   const reference = generateTxnReference();
   const debit = await debitWallet({

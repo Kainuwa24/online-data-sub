@@ -25,17 +25,20 @@ Provider clients are ported from the `onlinedatasub` monorepo patterns.
 
 ## Local setup
 
+Local DB uses **SQLite** (no Postgres install). Production/Render uses Postgres via `schema.postgres.prisma`.
+
 ```bash
 npm install
-cp .env.example .env   # fill DATABASE_URL, JWT_SECRET, provider keys
-npx prisma generate
-npx prisma db push
+cp .env.example .env   # already fine for local: DATABASE_URL="file:./dev.db"
+npm run db:setup       # prisma db push + generate
 npm run dev
 ```
 
 App: http://localhost:3000  
 
-Without ASBDATA/PalmPay keys: purchases simulate; funding needs keys (or use **Wallet → Dev simulate credit** in development).
+If you see `Environment variable not found: DATABASE_URL`, create `.env` from `.env.example` and restart `npm run dev`.
+
+Without ASBDATA/PalmPay keys: purchases **simulate**; use **Wallet → Dev simulate credit** in development to add balance.
 
 ## Deploy
 

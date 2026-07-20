@@ -1,25 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPin, generateOtpCode, generateReferralCode } from "@/lib/auth";
+import { generateOtpCode, generateReferralCode } from "@/lib/auth";
 import { sendOtpSms } from "@/lib/services/termii";
-import { normalizePhone, isValidNgPhone } from "@/lib/phone";
+import { validateNgPhone } from "@/lib/phone";
 
+/**
+ * Phone signup step 1: name + phone only.
+ * PIN and BVN/NIN are collected later on /complete-profile (never here).
+ */
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const name = String(body.name || "").trim();
-  const phone = normalizePhone(String(body.phone || ""));
-  const pin = String(body.pin || "");
-  const referralCodeIn = body.referralCode ? String(body.referralCode).trim().toUpperCase() : null;
+  const phoneCheck = validateNgPhone(String(body.phone || ""));
+  const referralCodeIn = body.referralCode
+    ? String(body.referralCode).trim().toUpperCase()
+    : null;
 
-  if (!name || !phone || !pin || pin.length !== 4) {
-    return NextResponse.json(
-      { error: "name, phone and a 4-digit pin are required" },
-      { status: 400 },
-    );
+  if (!name || name.length < 2) {
+    return NextResponse.json({ error: "Enter your full name" }, { status: 400 });
   }
-  if (!isValidNgPhone(phone)) {
-    return NextResponse.json({ error: "Enter a valid Nigerian phone number" }, { status: 400 });
+  if (!phoneCheck.ok) {
+    return NextResponse.json({ error: phoneCheck.error }, { status: 400 });
   }
+  const phone = phoneCheck.phone;
 
   const existing = await prisma.user.findUnique({ where: { phone } });
   if (existing) {
@@ -35,14 +38,13 @@ export async function POST(req: NextRequest) {
     if (referrer) referredBy = referrer.referralCode;
   }
 
-  const pinHash = await hashPin(pin);
   const referralCode = generateReferralCode(name);
 
   const user = await prisma.user.create({
     data: {
       name,
       phone,
-      pinHash,
+      pinHash: null, // set on complete-profile step 2
       referralCode,
       referredBy,
       wallet: { create: { balanceKobo: 0 } },

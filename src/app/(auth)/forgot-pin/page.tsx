@@ -2,40 +2,57 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TextField } from "@/components/ui/TextField";
+import { PhoneField } from "@/components/ui/PhoneField";
 import { Button } from "@/components/ui/Button";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { isValidNgPhone, validateNgPhone } from "@/lib/phone";
 
 export default function ForgotPinPage() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function submit() {
+    const check = validateNgPhone(phone);
+    if (!check.ok) {
+      setError(check.error);
+      return;
+    }
     setError("");
+    setLoading(true);
     const res = await fetch("/api/auth/otp/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, purpose: "reset_pin" }),
+      body: JSON.stringify({ phone: check.phone, purpose: "reset_pin" }),
     });
+    setLoading(false);
     if (!res.ok) {
       const data = await res.json();
       setError(data.error || "Something went wrong");
       return;
     }
-    router.push(`/otp?phone=${encodeURIComponent(phone)}&purpose=reset_pin`);
+    router.push(`/otp?phone=${encodeURIComponent(check.phone)}&purpose=reset_pin`);
   }
 
   return (
-    <div className="min-h-screen px-6 py-10 max-w-sm mx-auto">
-      <div className="text-lg font-display font-bold mt-5">Forgot PIN</div>
-      <div className="text-sm text-gray-500 font-body mt-2 mb-6">
-        Enter the phone number on your account. We'll send a code to verify it's you.
-      </div>
-      <TextField label="Phone number" placeholder="080X XXX XXXX" value={phone} onChange={setPhone} />
-      {error && <div className="text-center text-red-600 text-xs font-body mb-3">{error}</div>}
-      <Button onClick={submit} disabled={phone.length < 10}>
-        Send code
+    <AuthShell
+      eyebrow="Account recovery"
+      title="Forgot PIN"
+      subtitle="Enter the phone number on your account. We'll send a code to verify it's you."
+      footer={
+        <a href="/login" className="text-brand-blue font-semibold">
+          ← Back to login
+        </a>
+      }
+    >
+      <PhoneField label="Phone number" value={phone} onChange={setPhone} />
+      {error && (
+        <div className="text-center text-brand-red text-xs font-body mb-3 font-medium">{error}</div>
+      )}
+      <Button onClick={submit} disabled={!isValidNgPhone(phone) || loading}>
+        {loading ? "Sending…" : "Send code"}
       </Button>
-    </div>
+    </AuthShell>
   );
 }

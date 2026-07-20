@@ -3,6 +3,8 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PinDots, NumPad } from "@/components/ui/PinPad";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { formatPhoneDisplay } from "@/lib/phone";
 
 function OtpForm() {
   const router = useRouter();
@@ -27,10 +29,9 @@ function OtpForm() {
       return;
     }
     if (purpose === "signup") {
-      router.push("/home");
+      router.push("/complete-profile");
       return;
     }
-    // reset_pin
     const token = encodeURIComponent(data.resetToken || "");
     router.push(`/forgot-pin/reset?phone=${encodeURIComponent(phone)}&token=${token}`);
   }
@@ -43,16 +44,24 @@ function OtpForm() {
   }
 
   return (
-    <div className="min-h-screen px-6 py-10 max-w-sm mx-auto">
-      <div className="text-lg font-display font-bold mt-5">Verify phone</div>
-      <div className="text-sm text-gray-500 font-body mt-2 mb-6">
-        Enter the 6-digit code sent to{" "}
-        <span className="text-gray-900 dark:text-white font-semibold">{phone}</span>
-      </div>
+    <AuthShell
+      eyebrow="Verification"
+      title="Enter the code"
+      subtitle={
+        <>
+          Sent to{" "}
+          <span className="font-semibold text-brand-ink">
+            {formatPhoneDisplay(phone)}
+          </span>
+        </>
+      }
+    >
       <PinDots length={6} filled={code.length} />
       <NumPad onPress={press} onBackspace={() => setCode(code.slice(0, -1))} />
-      {error && <div className="text-center text-red-600 text-xs font-body mt-4">{error}</div>}
-    </div>
+      {error && (
+        <div className="text-center text-brand-red text-xs font-body mt-4 font-medium">{error}</div>
+      )}
+    </AuthShell>
   );
 }
 

@@ -1,22 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TopBar } from "@/components/layout/TopBar";
-import { LogoutButton } from "./LogoutButton";
-import { Copy, Check } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  User,
+  Shield,
+  Gift,
+  HelpCircle,
+  ChevronRight,
+  LogOut,
+  Moon,
+  Sun,
+} from "lucide-react";
+import { ScreenHeader } from "@/components/layout/ScreenHeader";
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [referralCode, setReferralCode] = useState("");
-  const [bvn, setBvn] = useState("");
-  const [nin, setNin] = useState("");
-  const [hasBvn, setHasBvn] = useState(false);
-  const [hasNin, setHasNin] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [dark, setDark] = useState(false);
 
   useEffect(() => {
     fetch("/api/profile")
@@ -24,130 +27,102 @@ export default function ProfilePage() {
       .then((d) => {
         setName(d.name || "");
         setPhone(d.phone || "");
-        setEmail(d.email || "");
-        setReferralCode(d.referralCode || "");
-        setHasBvn(Boolean(d.hasBvn));
-        setHasNin(Boolean(d.hasNin));
       });
+    setDark(document.documentElement.classList.contains("dark"));
   }, []);
 
-  async function save() {
-    setSaving(true);
-    setStatus(null);
-    const res = await fetch("/api/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        email: email || null,
-        bvn: bvn || undefined,
-        nin: nin || undefined,
-      }),
-    });
-    const data = await res.json();
-    setSaving(false);
-    if (!res.ok) {
-      setStatus(data.error || "Could not save");
-      return;
+  function toggleDark() {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    try {
+      localStorage.setItem("ods-theme", next ? "dark" : "light");
+    } catch {
+      /* ignore */
     }
-    setHasBvn(Boolean(data.hasBvn));
-    setHasNin(Boolean(data.hasNin));
-    setBvn("");
-    setNin("");
-    setStatus("Profile updated");
   }
 
-  async function copyCode() {
-    await navigator.clipboard.writeText(referralCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
   }
+
+  const rows = [
+    { icon: User, label: "Edit profile", href: "/profile/edit" },
+    { icon: Shield, label: "Security & PIN", href: "/profile/security" },
+    { icon: Gift, label: "Refer & earn", href: "/profile/referral" },
+    { icon: HelpCircle, label: "Help & support", href: "/profile/help" },
+  ];
+
+  const initial = (name || "?").trim().charAt(0).toUpperCase();
 
   return (
-    <div>
-      <TopBar subtitle="Manage" title="Profile" />
-      <div className="px-5 pb-24">
+    <div className="animate-fade-up pb-28">
+      <ScreenHeader title="Profile" backHref="/home" />
+
+      <div className="px-5">
         <div className="flex items-center gap-3.5 py-4">
-          <div className="h-13 w-13 rounded-full bg-brand-blue flex items-center justify-center text-white font-display font-bold text-lg">
-            {(name || "?")[0]}
+          <div className="h-14 w-14 rounded-full bg-gradient-to-br from-brand-blue to-brand-blueDark shadow-glow flex items-center justify-center text-white font-display font-bold text-lg">
+            {initial}
           </div>
-          <div>
-            <div className="font-display font-bold text-[15px]">{name}</div>
-            <div className="text-xs text-gray-400 font-body">{phone}</div>
+          <div className="min-w-0">
+            <div className="font-display font-bold text-[16px] text-brand-ink truncate">
+              {name || "—"}
+            </div>
+            <div className="text-xs text-brand-muted font-body mt-0.5">{phone || "—"}</div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 p-3.5 mb-4">
-          <div className="text-[11px] text-gray-500 font-body">Referral code</div>
-          <div className="flex items-center justify-between mt-1">
-            <span className="font-mono font-bold text-sm">{referralCode}</span>
+        <div className="card overflow-hidden">
+          {rows.map((r, i) => {
+            const Icon = r.icon;
+            return (
+              <Link
+                key={r.href}
+                href={r.href}
+                className={`flex items-center gap-3 px-4 py-3.5 active:bg-slate-50 ${
+                  i !== rows.length - 1 ? "border-b border-brand-line/70" : ""
+                }`}
+              >
+                <Icon size={17} className="text-brand-muted shrink-0" strokeWidth={1.75} />
+                <span className="flex-1 text-[13.5px] font-body text-brand-ink">{r.label}</span>
+                <ChevronRight size={16} className="text-slate-300" />
+              </Link>
+            );
+          })}
+          <div className="flex items-center gap-3 px-4 py-3.5 border-t border-brand-line/70">
+            {dark ? (
+              <Sun size={17} className="text-brand-muted" strokeWidth={1.75} />
+            ) : (
+              <Moon size={17} className="text-brand-muted" strokeWidth={1.75} />
+            )}
+            <span className="flex-1 text-[13.5px] font-body text-brand-ink">Dark mode</span>
             <button
               type="button"
-              onClick={copyCode}
-              className="flex items-center gap-1 text-xs text-brand-blue font-semibold font-body"
+              role="switch"
+              aria-checked={dark}
+              onClick={toggleDark}
+              className={`relative w-10 h-[22px] rounded-full transition-colors ${
+                dark ? "bg-brand-blue" : "bg-slate-300"
+              }`}
             >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-              {copied ? "Copied" : "Copy"}
+              <span
+                className={`absolute top-0.5 h-[18px] w-[18px] rounded-full bg-white shadow transition-all ${
+                  dark ? "left-5" : "left-0.5"
+                }`}
+              />
             </button>
           </div>
-          <p className="text-[11px] text-gray-400 font-body mt-2">
-            Friends who sign up with your code earn a welcome bonus; you get one too.
-          </p>
         </div>
-
-        <div className="text-[11px] text-gray-500 font-body mb-1.5">Full name</div>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 px-3.5 py-3 text-sm font-body outline-none mb-3"
-        />
-
-        <div className="text-[11px] text-gray-500 font-body mb-1.5">Email (optional)</div>
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          type="email"
-          className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 px-3.5 py-3 text-sm font-body outline-none mb-3"
-        />
-
-        <div className="text-xs font-semibold text-gray-500 font-body mt-2 mb-2">
-          KYC for wallet funding
-        </div>
-        <p className="text-[11px] text-gray-400 font-body mb-2">
-          PalmPay needs BVN or NIN. Current:{" "}
-          {hasBvn ? "BVN saved" : "no BVN"} · {hasNin ? "NIN saved" : "no NIN"}
-        </p>
-
-        <div className="text-[11px] text-gray-500 font-body mb-1.5">BVN (11 digits)</div>
-        <input
-          value={bvn}
-          onChange={(e) => setBvn(e.target.value)}
-          placeholder={hasBvn ? "Leave blank to keep existing" : "Enter BVN"}
-          inputMode="numeric"
-          className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 px-3.5 py-3 text-sm font-mono outline-none mb-3"
-        />
-
-        <div className="text-[11px] text-gray-500 font-body mb-1.5">NIN (11 digits)</div>
-        <input
-          value={nin}
-          onChange={(e) => setNin(e.target.value)}
-          placeholder={hasNin ? "Leave blank to keep existing" : "Enter NIN"}
-          inputMode="numeric"
-          className="w-full rounded-2xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 px-3.5 py-3 text-sm font-mono outline-none mb-4"
-        />
-
-        {status && <div className="text-center text-xs font-body mb-3">{status}</div>}
 
         <button
           type="button"
-          onClick={save}
-          disabled={saving}
-          className="w-full rounded-2xl bg-brand-blue text-white py-3.5 text-sm font-bold font-body mb-4"
+          onClick={logout}
+          className="w-full mt-4 flex items-center gap-3 rounded-2xl bg-brand-redSoft px-4 py-3.5 active:scale-[0.99] transition-transform"
         >
-          {saving ? "Saving…" : "Save profile"}
+          <LogOut size={17} className="text-brand-red" />
+          <span className="text-[13.5px] font-semibold font-body text-brand-red">Log out</span>
         </button>
-
-        <LogoutButton />
       </div>
     </div>
   );

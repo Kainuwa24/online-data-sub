@@ -3,30 +3,38 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { TextField } from "@/components/ui/TextField";
+import { PhoneField } from "@/components/ui/PhoneField";
 import { Button } from "@/components/ui/Button";
-import { PinDots, NumPad } from "@/components/ui/PinPad";
+import { GoogleButton } from "@/components/auth/GoogleButton";
+import { MagicLinkForm } from "@/components/auth/MagicLinkForm";
+import { AuthShell } from "@/components/auth/AuthShell";
+import { isValidNgPhone, validateNgPhone } from "@/lib/phone";
 
 export default function SignupPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const canSubmit = name && phone.length >= 10 && pin.length === 4 && !loading;
-
-  function press(d: string) {
-    if (pin.length < 4) setPin(pin + d);
-  }
+  const canSubmit = name.trim().length >= 2 && isValidNgPhone(phone) && !loading;
 
   async function submit() {
+    const phoneCheck = validateNgPhone(phone);
+    if (!phoneCheck.ok) {
+      setError(phoneCheck.error);
+      return;
+    }
+    if (name.trim().length < 2) {
+      setError("Enter your full name");
+      return;
+    }
     setLoading(true);
     setError("");
     const res = await fetch("/api/auth/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, phone, pin }),
+      body: JSON.stringify({ name: name.trim(), phone: phoneCheck.phone }),
     });
     setLoading(false);
     if (!res.ok) {
@@ -34,34 +42,49 @@ export default function SignupPage() {
       setError(data.error || "Something went wrong");
       return;
     }
-    router.push(`/otp?phone=${encodeURIComponent(phone)}&purpose=signup`);
+    router.push(`/otp?phone=${encodeURIComponent(phoneCheck.phone)}&purpose=signup`);
   }
 
   return (
-    <div className="min-h-screen px-6 py-10 max-w-sm mx-auto">
-      <div className="text-2xl font-display font-extrabold mt-5">Create your account</div>
-      <div className="text-sm text-gray-500 font-body mt-1 mb-6">Takes less than a minute.</div>
+    <AuthShell
+      eyebrow="Get started"
+      title="Create account"
+      subtitle="Start with Google, email, or phone. PIN and KYC come next."
+      footer={
+        <>
+          Already have an account?{" "}
+          <a href="/login" className="text-brand-blue font-semibold">
+            Log in
+          </a>
+        </>
+      }
+    >
+      <GoogleButton label="Sign up with Google" />
 
-      <TextField label="Full name" placeholder="e.g. Zagalost Abdullahi" value={name} onChange={setName} />
-      <TextField label="Phone number" placeholder="080X XXX XXXX" value={phone} onChange={setPhone} />
-
-      <div className="text-[11px] text-gray-500 font-body mb-1.5">Create a 4-digit PIN</div>
-      <PinDots length={4} filled={pin.length} />
-      <NumPad onPress={press} onBackspace={() => setPin(pin.slice(0, -1))} />
-
-      {error && <div className="text-center text-red-600 text-xs font-body mt-4">{error}</div>}
-
-      <div className="mt-6">
-        <Button onClick={submit} disabled={!canSubmit}>
-          {loading ? "Creating account…" : "Create account"}
-        </Button>
+      <div className="divider-or">
+        <span className="text-[11px] text-brand-muted font-body shrink-0">or magic link</span>
       </div>
-      <div className="text-center text-xs text-gray-500 font-body mt-4">
-        Already have an account?{" "}
-        <a href="/login" className="text-brand-blue font-semibold">
-          Log in
-        </a>
+      <MagicLinkForm />
+
+      <div className="divider-or">
+        <span className="text-[11px] text-brand-muted font-body shrink-0">or phone</span>
       </div>
-    </div>
+
+      <TextField
+        label="Full name"
+        placeholder="e.g. Zagalost Abdullahi"
+        value={name}
+        onChange={setName}
+      />
+      <PhoneField label="Phone number" value={phone} onChange={setPhone} />
+
+      {error && (
+        <div className="text-center text-brand-red text-xs font-body mb-3 font-medium">{error}</div>
+      )}
+
+      <Button onClick={submit} disabled={!canSubmit}>
+        {loading ? "Sending code…" : "Continue"}
+      </Button>
+    </AuthShell>
   );
 }

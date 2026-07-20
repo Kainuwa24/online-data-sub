@@ -6,11 +6,20 @@ export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const notifications = await prisma.notification.findMany({
+  const rows = await prisma.notification.findMany({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },
-    take: 30,
+    take: 50,
   });
 
-  return NextResponse.json({ notifications });
+  return NextResponse.json({
+    notifications: rows.map((n) => ({
+      id: n.id,
+      title: n.title,
+      body: n.body,
+      unread: !n.read,
+      read: n.read,
+      createdAt: n.createdAt.toISOString(),
+    })),
+  });
 }

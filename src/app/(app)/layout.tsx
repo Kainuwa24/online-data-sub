@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
+import { isProfileComplete } from "@/lib/google-oauth";
 import { BottomNav } from "@/components/layout/BottomNav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (!isProfileComplete(user)) redirect("/complete-profile");
 
   return (
-    <div className="max-w-sm mx-auto min-h-screen relative pb-20">
+    <div className="app-shell pb-28">
       {children}
       <BottomNav />
     </div>
