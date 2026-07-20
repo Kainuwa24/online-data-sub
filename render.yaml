@@ -4,8 +4,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm ci && npm run db:generate:prod && npm run build
-    preDeployCommand: npm run db:push:prod
+    buildCommand: npm ci && npm run db:generate:prod && npm run db:push:prod && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeployTrigger: commit
