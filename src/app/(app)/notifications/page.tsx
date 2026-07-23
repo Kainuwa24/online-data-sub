@@ -9,17 +9,14 @@ import {
   Gift,
   Info,
   CheckCheck,
+  RefreshCw,
 } from "lucide-react";
+import {
+  useAppCache,
+  type NotificationSnapshot,
+} from "@/components/app/AppCacheProvider";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { useToast } from "@/components/ui/Toast";
-
-type Notif = {
-  id: string;
-  title: string;
-  body: string;
-  unread: boolean;
-  createdAt: string;
-};
 
 function relativeTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -45,24 +42,50 @@ function notifIcon(title: string) {
 export default function NotificationsPage() {
   const router = useRouter();
   const { success, error: toastError } = useToast();
-  const [notifs, setNotifs] = useState<Notif[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    notifications,
+    setNotifications,
+    updateNotifications,
+    setUnreadCount,
+    updateUnreadCount,
+  } = useAppCache();
+  const [notifs, setNotifs] = useState<NotificationSnapshot[]>(notifications ?? []);
+  const [loading, setLoading] = useState(!notifications);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/notifications");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load");
-      setNotifs(data.notifications || []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load notifications");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const load = useCallback(
+    async (force = false) => {
+      if (!force && notifications) {
+        setNotifs(notifications);
+        setUnreadCount(notifications.filter((n) => n.unread).length);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+      if (force) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+      try {
+        const res = await fetch("/api/notifications");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to load");
+        const next = data.notifications || [];
+        setNotifs(next);
+        setNotifications(next);
+        setUnreadCount(next.filter((n: NotificationSnapshot) => n.unread).length);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load notifications");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [notifications, setNotifications, setUnreadCount],
+  );
 
   useEffect(() => {
     void load();
@@ -75,15 +98,25 @@ export default function NotificationsPage() {
       return;
     }
     setNotifs((prev) => prev.map((n) => ({ ...n, unread: false })));
+    updateNotifications((prev) => prev?.map((n) => ({ ...n, unread: false })));
+    setUnreadCount(0);
     success("All notifications marked read");
   }
 
-  async function openNotif(n: Notif) {
+  async function refreshInbox() {
+    await load(true);
+  }
+
+  async function openNotif(n: NotificationSnapshot) {
     if (n.unread) {
       await fetch(`/api/notifications/${n.id}/read`, { method: "POST" });
       setNotifs((prev) =>
         prev.map((x) => (x.id === n.id ? { ...x, unread: false } : x)),
       );
+      updateNotifications((prev) =>
+        prev?.map((x) => (x.id === n.id ? { ...x, unread: false } : x)),
+      );
+      updateUnreadCount((current) => Math.max(0, (current ?? 1) - 1));
     }
     // Navigate based on content
     const t = `${n.title} ${n.body}`.toLowerCase();
@@ -108,17 +141,28 @@ export default function NotificationsPage() {
       <ScreenHeader title="Notifications" backHref="/home" />
 
       <div className="px-5">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 gap-2">
           <div className="section-label">Inbox</div>
-          <button
-            type="button"
-            onClick={() => void markAll()}
-            disabled={!hasUnread}
-            className="flex items-center gap-1.5 text-xs font-semibold text-brand-blue font-body disabled:opacity-40"
-          >
-            <CheckCheck size={14} />
-            Mark all read
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void refreshInbox()}
+              disabled={refreshing}
+              className="inline-flex items-center gap-1.5 rounded-full border border-brand-line bg-white px-3 py-1.5 text-[11px] font-semibold text-brand-muted disabled:opacity-60"
+            >
+              <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void markAll()}
+              disabled={!hasUnread}
+              className="flex items-center gap-1.5 text-xs font-semibold text-brand-blue font-body disabled:opacity-40"
+            >
+              <CheckCheck size={14} />
+              Mark all read
+            </button>
+          </div>
         </div>
 
         {loading ? (

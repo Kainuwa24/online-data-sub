@@ -1,35 +1,70 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Copy, Share2, Check } from "lucide-react";
+import { Copy, Share2, Check, RefreshCw } from "lucide-react";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
-
-type Invite = { id: string; name: string; status: string; done: boolean };
+import { useAppCache, type ReferralSnapshot } from "@/components/app/AppCacheProvider";
 
 export default function ReferralPage() {
-  const [loading, setLoading] = useState(true);
+  const { referral, setReferral } = useAppCache();
+  const [loading, setLoading] = useState(!referral);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [code, setCode] = useState("");
-  const [tagline, setTagline] = useState("Give ₦500, get ₦500");
-  const [friendsJoined, setFriendsJoined] = useState(0);
-  const [earnedFormatted, setEarnedFormatted] = useState("₦0");
-  const [friends, setFriends] = useState<Invite[]>([]);
+  const [code, setCode] = useState(referral?.code ?? "");
+  const [tagline, setTagline] = useState(referral?.tagline ?? "Give ₦500, get ₦500");
+  const [friendsJoined, setFriendsJoined] = useState(referral?.friendsJoined ?? 0);
+  const [earnedFormatted, setEarnedFormatted] = useState(referral?.earnedFormatted ?? "₦0");
+  const [friends, setFriends] = useState(referral?.invites ?? []);
   const [copied, setCopied] = useState(false);
 
+  async function loadReferral(force = false) {
+    if (!force && referral) {
+      setCode(referral.code || "");
+      setTagline(referral.tagline || "Give ₦500, get ₦500");
+      setFriendsJoined(referral.friendsJoined || 0);
+      setEarnedFormatted(referral.earnedFormatted || "₦0");
+      setFriends(referral.invites || []);
+      setLoading(false);
+      return;
+    }
+
+    if (force) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const r = await fetch("/api/referrals/me");
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Failed to load");
+
+      const next: ReferralSnapshot = {
+        code: data.code || "",
+        tagline: data.tagline || "Give ₦500, get ₦500",
+        friendsJoined: data.friendsJoined || 0,
+        earnedFormatted: data.earnedFormatted || "₦0",
+        invites: data.invites || [],
+      };
+
+      setCode(next.code);
+      setTagline(next.tagline);
+      setFriendsJoined(next.friendsJoined);
+      setEarnedFormatted(next.earnedFormatted);
+      setFriends(next.invites);
+      setReferral(next);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
   useEffect(() => {
-    fetch("/api/referrals/me")
-      .then(async (r) => {
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error || "Failed to load");
-        setCode(data.code || "");
-        setTagline(data.tagline || "Give ₦500, get ₦500");
-        setFriendsJoined(data.friendsJoined || 0);
-        setEarnedFormatted(data.earnedFormatted || "₦0");
-        setFriends(data.invites || []);
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"))
-      .finally(() => setLoading(false));
-  }, []);
+    void loadReferral();
+  }, [referral]);
 
   const inviteLink =
     typeof window !== "undefined"
@@ -64,6 +99,18 @@ export default function ReferralPage() {
       <ScreenHeader title="Refer & earn" backHref="/profile" />
 
       <div className="px-5">
+        <div className="flex justify-end mt-2 mb-3">
+          <button
+            type="button"
+            onClick={() => void loadReferral(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand-line bg-white px-3 py-1.5 text-[11px] font-semibold text-brand-muted disabled:opacity-60"
+          >
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+
         <div className="rounded-[22px] p-5 text-white relative overflow-hidden shadow-glow bg-wallet-card">
           <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
           <div className="relative">

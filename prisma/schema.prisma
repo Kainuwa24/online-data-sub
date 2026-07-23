@@ -20,6 +20,8 @@ model User {
   referralCode    String    @unique
   referredBy      String?
   email           String?   @unique
+  /// bcrypt hash for email/password accounts (null for Google-only users)
+  passwordHash    String?
   googleId        String?   @unique
   bvn             String?
   nin             String?

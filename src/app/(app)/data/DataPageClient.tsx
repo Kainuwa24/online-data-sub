@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/Toast";
 import { PhoneField } from "@/components/ui/PhoneField";
 import { isValidNgPhone, validateNgPhone } from "@/lib/phone";
 import { saveCheckout } from "@/lib/checkout";
+import { RefreshCw } from "lucide-react";
 
 export type Plan = {
   network: string;
@@ -40,6 +41,23 @@ export function DataPageClient({
     () => allPlans.filter((p) => p.network === network),
     [allPlans, network],
   );
+
+  async function loadPlans(force = false) {
+    if (force) {
+      setRefreshing(true);
+    }
+    try {
+      const res = await fetch("/api/data/plans");
+      const d = await res.json();
+      if (Array.isArray(d.plans) && d.plans.length > 0) {
+        setAllPlans(d.plans);
+      }
+    } catch {
+      // Keep the existing snapshot if refresh fails.
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -132,9 +150,15 @@ export function DataPageClient({
 
         <div className="flex items-center justify-between mb-2">
           <div className="section-label">Network</div>
-          {refreshing && (
-            <span className="text-[10px] text-brand-muted font-body">Updating…</span>
-          )}
+          <button
+            type="button"
+            onClick={() => void loadPlans(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 disabled:opacity-60"
+          >
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
         <div className="flex gap-2 mb-5">
           {NETWORKS.map((n) => (

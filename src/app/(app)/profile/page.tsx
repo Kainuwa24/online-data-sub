@@ -12,24 +12,49 @@ import {
   LogOut,
   Moon,
   Sun,
+  RefreshCw,
 } from "lucide-react";
+import { useAppCache } from "@/components/app/AppCacheProvider";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const { profile, setProfile, reset } = useAppCache();
+  const [name, setName] = useState(profile?.name ?? "");
+  const [phone, setPhone] = useState(profile?.phone ?? "");
   const [dark, setDark] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function refreshProfile(force = false) {
+    if (!force && profile) {
+      setName(profile.name || "");
+      setPhone(profile.phone || "");
+      setDark(document.documentElement.classList.contains("dark"));
+      return;
+    }
+
+    setRefreshing(true);
+    try {
+      const res = await fetch("/api/profile");
+      const d = await res.json();
+      setName(d.name || "");
+      setPhone(d.phone || "");
+      setProfile({
+        name: d.name || "",
+        phone: d.phone || "",
+        email: d.email || null,
+        bvnMasked: d.bvnMasked || null,
+        ninMasked: d.ninMasked || null,
+      });
+    } finally {
+      setRefreshing(false);
+      setDark(document.documentElement.classList.contains("dark"));
+    }
+  }
 
   useEffect(() => {
-    fetch("/api/profile")
-      .then((r) => r.json())
-      .then((d) => {
-        setName(d.name || "");
-        setPhone(d.phone || "");
-      });
-    setDark(document.documentElement.classList.contains("dark"));
-  }, []);
+    void refreshProfile();
+  }, [profile]);
 
   function toggleDark() {
     const next = !dark;
@@ -44,6 +69,7 @@ export default function ProfilePage() {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
+    reset();
     router.push("/login");
   }
 
@@ -61,6 +87,18 @@ export default function ProfilePage() {
       <ScreenHeader title="Profile" backHref="/home" />
 
       <div className="px-5">
+        <div className="flex justify-end mt-2">
+          <button
+            type="button"
+            onClick={() => void refreshProfile(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand-line bg-white px-3 py-1.5 text-[11px] font-semibold text-brand-muted disabled:opacity-60"
+          >
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+
         <div className="flex items-center gap-3.5 py-4">
           <div className="h-14 w-14 rounded-full bg-gradient-to-br from-brand-blue to-brand-blueDark shadow-glow flex items-center justify-center text-white font-display font-bold text-lg">
             {initial}

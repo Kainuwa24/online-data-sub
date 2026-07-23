@@ -8,6 +8,7 @@ Mobile-first Next.js app for **data, airtime, bills**, wallet funding, and gold/
 - **Prisma** + PostgreSQL  
 - **ASBDATA** — data, airtime, bills  
 - **PalmPay** — permanent virtual account funding + webhook  
+- **Flutterwave** — secondary permanent VA funding + webhook (MafitaPay pattern)  
 - **Termii** — OTP SMS  
 - **GoldAPI** — gold price (optional)  
 - JWT session cookie, PIN hashed with bcrypt  
@@ -16,9 +17,10 @@ Provider clients are ported from the `onlinedatasub` monorepo patterns.
 
 ## Features
 
-- Signup → OTP verify → login (unverified users cannot stay logged in)  
-- Forgot PIN (OTP → reset token → new PIN)  
-- Wallet balance; fund via PalmPay bank transfer (BVN/NIN KYC)  
+- Sign in with Google or email + password  
+- Complete profile (phone, BVN/NIN, transaction PIN) after first signup  
+- Forgot PIN for purchase PIN (OTP → reset)  
+- Wallet balance; fund via PalmPay or Flutterwave bank transfer (BVN/NIN KYC)  
 - Data + airtime (ASBDATA), bills (electricity / cable)  
 - Referrals: code on profile; bonus on verified referred signup  
 - Watch: gold + mock NGX  

@@ -43,17 +43,49 @@ PALMPAY_COUNTRY_CODE=NG
 3. `orderAmount` is **kobo** — do not divide twice  
 4. KYC required or banks show “recipient KYC incomplete”
 
-## 3. Termii (OTP/SMS) — https://termii.com
+## 3. Flutterwave (secondary wallet funding) — https://developer.flutterwave.com/
+
+Permanent **static virtual account** (cloned from MafitaPay):
+
+1. User adds **BVN or NIN** on Profile  
+2. Wallet → select **Flutterwave** → create funding account  
+3. `POST /api/wallet/funding/account` with `{ "provider": "flutterwave" }`  
+   creates a permanent VA (`is_permanent: true` + bvn/nin)  
+4. User transfers from any bank app  
+5. Flutterwave webhook `POST /api/webhooks/flutterwave` credits wallet (idempotent)  
+6. Matches deposits by `tx_ref` starting with `static_va_` or VA account number  
+
+Env:
+
+```env
+FLUTTERWAVE_SECRET_KEY=FLWSECK_TEST-...
+FLUTTERWAVE_SECRET_HASH=your-dashboard-secret-hash
+# optional
+FLUTTERWAVE_BASE_URL=https://api.flutterwave.com/v3
+```
+
+**Production checklist**
+
+1. Register HTTPS webhook URL in Flutterwave dashboard → Settings → Webhooks  
+   `https://YOUR-HOST/api/webhooks/flutterwave`  
+2. Set the same **Secret hash** as `FLUTTERWAVE_SECRET_HASH`  
+3. Subscribe to `charge.completed` (bank transfer / virtual account)  
+4. Amounts from Flutterwave are **NGN** (major units) — converted to kobo on credit  
+5. Prefer `amount_settled` when verifying the transaction  
+
+Users can hold **both** PalmPay and Flutterwave permanent accounts; Wallet page has a provider toggle.
+
+## 4. Termii (OTP/SMS) — https://termii.com
 
 - Register sender ID; request **DND/transactional** route so MTN delivers overnight  
 - Env: `TERMII_API_KEY`, `TERMII_SENDER_ID`  
 - Without a key, OTPs are logged to the server console (dev only)
 
-## 4. GoldAPI — https://www.goldapi.io
+## 5. GoldAPI — https://www.goldapi.io
 
 Optional. Without a key the Watch page shows a mock gold price. `USD_NGN_FALLBACK_RATE` converts USD→NGN until a live FX source is added.
 
-## 5. NGX stocks
+## 6. NGX stocks
 
 Still mock on the Watch page. Official NGX data is expensive at MVP stage.
 

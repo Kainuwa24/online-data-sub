@@ -19,7 +19,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "I forgot my PIN",
-    a: "On the login screen choose Forgot PIN, verify your phone with OTP, then set a new 4-digit PIN.",
+    a: "Your 4-digit PIN is for purchases, not login. Go to Profile → Security & PIN, or use Forgot PIN (OTP to your phone) to reset it.",
   },
   {
     q: "How do I change my PIN?",

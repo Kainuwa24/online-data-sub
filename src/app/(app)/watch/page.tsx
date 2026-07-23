@@ -2,23 +2,74 @@
 
 import { useEffect, useState } from "react";
 import { TopBar } from "@/components/layout/TopBar";
-import { ArrowUpRight, ArrowDownRight } from "lucide-react";
-
-type Stock = { ticker: string; name: string; priceKobo: number; changePercent: number };
+import { ArrowUpRight, ArrowDownRight, RefreshCw } from "lucide-react";
+import { useAppCache, type WatchSnapshot } from "@/components/app/AppCacheProvider";
 
 export default function WatchPage() {
-  const [gold, setGold] = useState<{ pricePerGramNgn: number; changePercent: number } | null>(null);
-  const [stocks, setStocks] = useState<Stock[]>([]);
+  const { watch, setWatch } = useAppCache();
+  const [gold, setGold] = useState(watch?.gold ?? null);
+  const [stocks, setStocks] = useState(watch?.stocks ?? []);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function loadWatch(force = false) {
+    if (!force && watch) {
+      setGold(watch.gold);
+      setStocks(watch.stocks);
+      return;
+    }
+
+    setRefreshing(true);
+    try {
+      const [goldRes, stocksRes] = await Promise.all([fetch("/api/watch/gold"), fetch("/api/watch/stocks")]);
+      const [goldData, stocksData] = await Promise.all([goldRes.json(), stocksRes.json()]);
+      const next: WatchSnapshot = {
+        gold: goldData || null,
+        stocks: stocksData.stocks || [],
+      };
+      setGold(next.gold);
+      setStocks(next.stocks);
+      setWatch(next);
+    } catch {
+      // Keep the current snapshot if refresh fails.
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   useEffect(() => {
-    fetch("/api/watch/gold").then((r) => r.json()).then(setGold);
-    fetch("/api/watch/stocks").then((r) => r.json()).then((d) => setStocks(d.stocks));
-  }, []);
+    let cancelled = false;
+    void (async () => {
+      if (watch) {
+        if (cancelled) return;
+        setGold(watch.gold);
+        setStocks(watch.stocks);
+        return;
+      }
+
+      await loadWatch();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [watch]);
 
   return (
     <div>
       <TopBar subtitle="Watch only" title="Gold & Stocks" />
       <div className="px-5">
+        <div className="flex justify-end mt-2">
+          <button
+            type="button"
+            onClick={() => void loadWatch(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 disabled:opacity-60"
+          >
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+
         {gold && (
           <div
             className="rounded-[22px] p-5 mt-2 border"

@@ -3,25 +3,57 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { useAppCache, type BillersSnapshot, type BillerSnapshot } from "@/components/app/AppCacheProvider";
 import { saveCheckout } from "@/lib/checkout";
-
-type Biller = { serviceID: string; name: string; variationCode?: string };
 
 export default function BillsPage() {
   const router = useRouter();
   const { info } = useToast();
-  const [billers, setBillers] = useState<Record<string, Biller[]>>({});
-  const [active, setActive] = useState<{ category: string; biller: Biller } | null>(null);
+  const { billers, setBillers } = useAppCache();
+  const [billersState, setBillersState] = useState<BillersSnapshot>(billers ?? {});
+  const [loading, setLoading] = useState(!billers);
+  const [refreshing, setRefreshing] = useState(false);
+  const [active, setActive] = useState<{ category: string; biller: BillerSnapshot } | null>(null);
   const [accountNumber, setAccountNumber] = useState("");
   const [amount, setAmount] = useState("5000");
 
   useEffect(() => {
+    if (billers) {
+      setBillersState(billers);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     fetch("/api/bills/billers")
       .then((r) => r.json())
-      .then((d) => setBillers(d.billers || {}));
-  }, []);
+      .then((d) => {
+        const next = d.billers || {};
+        setBillersState(next);
+        setBillers(next);
+      })
+      .finally(() => setLoading(false));
+  }, [billers, setBillers]);
+
+  async function refreshBillers(force = false) {
+    if (!force && billers) {
+      setBillersState(billers);
+      setLoading(false);
+      return;
+    }
+    setRefreshing(true);
+    try {
+      const res = await fetch("/api/bills/billers");
+      const data = await res.json();
+      const next = data.billers || {};
+      setBillersState(next);
+      setBillers(next);
+    } finally {
+      setRefreshing(false);
+      setLoading(false);
+    }
+  }
 
   function goConfirm() {
     if (!active) return;
@@ -92,7 +124,23 @@ export default function BillsPage() {
     <div className="animate-fade-up">
       <TopBar subtitle="Pay" title="Bills" initial="B" />
       <div className="px-5 pb-28">
-        {Object.entries(billers).map(([category, list]) => (
+        <div className="flex justify-end mt-2">
+          <button
+            type="button"
+            onClick={() => void refreshBillers(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 disabled:opacity-60"
+          >
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
+
+        {loading && Object.keys(billersState).length === 0 ? (
+          <div className="text-sm text-brand-muted font-body py-10 text-center">Loading…</div>
+        ) : null}
+
+        {Object.entries(billersState).map(([category, list]) => (
           <div key={category} className="mt-5">
             <div className="section-label mb-2">{category}</div>
             <div className="card overflow-hidden">

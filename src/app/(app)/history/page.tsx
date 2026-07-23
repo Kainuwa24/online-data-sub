@@ -1,24 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TopBar } from "@/components/layout/TopBar";
-import { ArrowDownRight, ArrowUpRight, Search, X } from "lucide-react";
-
-type HistoryFilter = "ALL" | "CREDIT" | "DEBIT";
-
-type Txn = {
-  id: string;
-  label: string;
-  category: string;
-  type: string;
-  credit: boolean;
-  amountKobo: number;
-  amountFormatted: string;
-  status: string;
-  reference: string;
-  createdAt: string;
-};
+import { ArrowDownRight, ArrowUpRight, Search, X, RefreshCw } from "lucide-react";
+import {
+  useAppCache,
+  type HistoryFilter,
+  type WalletTransaction,
+} from "@/components/app/AppCacheProvider";
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -39,29 +30,47 @@ function formatWhen(iso: string) {
 
 export default function HistoryPage() {
   const router = useRouter();
-  const [txns, setTxns] = useState<Txn[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { history, setHistory } = useAppCache();
+  const [txns, setTxns] = useState<WalletTransaction[]>(history.ALL ?? []);
+  const [loading, setLoading] = useState(!history.ALL);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<HistoryFilter>("ALL");
   const [query, setQuery] = useState("");
 
-  const load = useCallback(async (f: HistoryFilter = filter) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({ limit: "100" });
-      if (f !== "ALL") params.set("type", f);
-      const res = await fetch(`/api/wallet/transactions?${params}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load history");
-      setTxns(data.transactions || []);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load history");
-      setTxns([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [filter]);
+  const load = useCallback(
+    async (f: HistoryFilter = filter, force = false) => {
+      const cached = history[f];
+      if (!force && cached) {
+        setTxns(cached);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+      if (force) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+      try {
+        const params = new URLSearchParams({ limit: "100" });
+        if (f !== "ALL") params.set("type", f);
+        const res = await fetch(`/api/wallet/transactions?${params}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to load history");
+        setTxns(data.transactions || []);
+        setHistory(f, data.transactions || []);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load history");
+        setTxns([]);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [filter, history, setHistory],
+  );
 
   useEffect(() => {
     void load("ALL");
@@ -70,6 +79,10 @@ export default function HistoryPage() {
   function setFilterAndLoad(f: HistoryFilter) {
     setFilter(f);
     void load(f);
+  }
+
+  function refreshCurrent() {
+    void load(filter, true);
   }
 
   const filters: { id: HistoryFilter; label: string }[] = [
@@ -126,7 +139,16 @@ export default function HistoryPage() {
         {/* Filters */}
         <div className="flex items-center justify-between mb-3">
           <div className="section-label">Transactions</div>
-          <div className="flex gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={refreshCurrent}
+              disabled={refreshing}
+              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 disabled:opacity-60"
+            >
+              <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
             {filters.map((f) => (
               <button
                 key={f.id}
@@ -161,10 +183,9 @@ export default function HistoryPage() {
         ) : (
           <div className="card overflow-hidden">
             {filtered.map((t, i) => (
-              <button
+              <Link
                 key={t.id}
-                type="button"
-                onClick={() => router.push(`/history/${t.id}`)}
+                href={`/history/${t.id}`}
                 className={`w-full flex items-center justify-between px-4 py-3.5 text-left transition-colors active:bg-slate-50 ${
                   i !== filtered.length - 1 ? "border-b border-brand-line/70" : ""
                 }`}
@@ -199,7 +220,7 @@ export default function HistoryPage() {
                   {t.credit ? "+" : "−"}
                   {naira(t.amountKobo)}
                 </div>
-              </button>
+              </Link>
             ))}
           </div>
         )}

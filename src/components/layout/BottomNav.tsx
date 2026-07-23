@@ -15,9 +15,9 @@ const ITEMS = [
 export function BottomNav() {
   const pathname = usePathname();
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 pointer-events-auto">
       <div className="max-w-md mx-auto px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-        <div className="glass-nav rounded-[22px] h-[68px] flex items-center justify-around px-1 mb-2 border border-brand-line/60">
+        <div className="glass-nav rounded-2xl h-16 flex items-center justify-around px-1 mb-2 border border-brand-line/60">
           {ITEMS.map((item) => {
             const Icon = item.icon;
             const active =
@@ -28,12 +28,12 @@ export function BottomNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex flex-col items-center justify-center gap-0.5 w-14 h-14 rounded-2xl transition-all duration-200 ${
+                className={`relative flex flex-col items-center justify-center gap-0.5 w-14 h-12 rounded-xl transition-all duration-200 ${
                   active ? "text-brand-blue" : "text-slate-400"
                 }`}
               >
                 {active && (
-                  <span className="absolute inset-1 rounded-2xl bg-brand-blueSoft dark:bg-blue-950/50" />
+                  <span className="absolute inset-x-1 top-0 h-0.5 rounded-full bg-brand-blue" />
                 )}
                 <Icon
                   size={20}

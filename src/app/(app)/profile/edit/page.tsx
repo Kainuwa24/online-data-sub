@@ -5,22 +5,33 @@ import { ScreenHeader } from "@/components/layout/ScreenHeader";
 import { TextField } from "@/components/ui/TextField";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { useAppCache } from "@/components/app/AppCacheProvider";
 
 export default function EditProfilePage() {
   const { success, error: toastError } = useToast();
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const { profile, setProfile } = useAppCache();
+  const [name, setName] = useState(profile?.name ?? "");
+  const [phone, setPhone] = useState(profile?.phone ?? "");
+  const [email, setEmail] = useState(profile?.email ?? "");
   const [bvn, setBvn] = useState("");
   const [nin, setNin] = useState("");
-  const [bvnMasked, setBvnMasked] = useState<string | null>(null);
-  const [ninMasked, setNinMasked] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [bvnMasked, setBvnMasked] = useState<string | null>(profile?.bvnMasked ?? null);
+  const [ninMasked, setNinMasked] = useState<string | null>(profile?.ninMasked ?? null);
+  const [loading, setLoading] = useState(!profile);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    if (profile) {
+      setName(profile.name || "");
+      setPhone(profile.phone || "");
+      setEmail(profile.email || "");
+      setBvnMasked(profile.bvnMasked || null);
+      setNinMasked(profile.ninMasked || null);
+      setLoading(false);
+      return;
+    }
     fetch("/api/profile")
       .then((r) => r.json())
       .then((d) => {
@@ -62,6 +73,13 @@ export default function EditProfilePage() {
       const me = await fetch("/api/profile").then((r) => r.json());
       setBvnMasked(me.bvnMasked || null);
       setNinMasked(me.ninMasked || null);
+      setProfile({
+        name: name.trim(),
+        phone,
+        email: email.trim() || null,
+        bvnMasked: me.bvnMasked || null,
+        ninMasked: me.ninMasked || null,
+      });
       setBvn("");
       setNin("");
       setSaved(true);
@@ -80,7 +98,7 @@ export default function EditProfilePage() {
       <ScreenHeader title="Edit profile" backHref="/profile" />
       <div className="px-5">
         <p className="text-sm text-brand-muted font-body mb-5 leading-relaxed">
-          Phone is used for login and cannot be changed here.
+          Phone is used for account recovery and cannot be changed here.
         </p>
 
         {loading ? (

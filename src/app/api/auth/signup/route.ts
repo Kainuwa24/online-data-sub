@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateOtpCode, generateReferralCode } from "@/lib/auth";
-import { sendOtpSms } from "@/lib/services/termii";
-import { validateNgPhone } from "@/lib/phone";
+import {
+  generateReferralCode,
+  hashPassword,
+  isValidEmail,
+  normalizeEmail,
+  signSession,
+  validatePassword,
+} from "@/lib/auth";
+import { setSessionCookie } from "@/lib/session";
 
 /**
- * Phone signup step 1: name + phone only.
- * PIN and BVN/NIN are collected later on /complete-profile (never here).
+ * Email + password signup.
+ * Phone, BVN/NIN, and transaction PIN are collected on /complete-profile.
  */
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  const body = await req.json().catch(() => ({}));
   const name = String(body.name || "").trim();
-  const phoneCheck = validateNgPhone(String(body.phone || ""));
+  const email = normalizeEmail(String(body.email || ""));
+  const password = String(body.password || "");
   const referralCodeIn = body.referralCode
     ? String(body.referralCode).trim().toUpperCase()
     : null;
@@ -19,15 +26,18 @@ export async function POST(req: NextRequest) {
   if (!name || name.length < 2) {
     return NextResponse.json({ error: "Enter your full name" }, { status: 400 });
   }
-  if (!phoneCheck.ok) {
-    return NextResponse.json({ error: phoneCheck.error }, { status: 400 });
+  if (!isValidEmail(email)) {
+    return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
   }
-  const phone = phoneCheck.phone;
+  const passwordCheck = validatePassword(password);
+  if (!passwordCheck.ok) {
+    return NextResponse.json({ error: passwordCheck.error }, { status: 400 });
+  }
 
-  const existing = await prisma.user.findUnique({ where: { phone } });
+  const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     return NextResponse.json(
-      { error: "An account with this phone number already exists" },
+      { error: "An account with this email already exists. Sign in instead." },
       { status: 409 },
     );
   }
@@ -38,29 +48,28 @@ export async function POST(req: NextRequest) {
     if (referrer) referredBy = referrer.referralCode;
   }
 
+  const passwordHash = await hashPassword(password);
   const referralCode = generateReferralCode(name);
 
   const user = await prisma.user.create({
     data: {
       name,
-      phone,
-      pinHash: null, // set on complete-profile step 2
+      email,
+      passwordHash,
+      phone: null,
+      pinHash: null,
       referralCode,
       referredBy,
       wallet: { create: { balanceKobo: 0 } },
     },
   });
 
-  const code = generateOtpCode();
-  await prisma.otpCode.create({
-    data: {
-      phone,
-      code,
-      purpose: "signup",
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    },
-  });
-  await sendOtpSms(phone, code);
+  setSessionCookie(signSession(user.id));
 
-  return NextResponse.json({ userId: user.id, phone });
+  return NextResponse.json({
+    ok: true,
+    userId: user.id,
+    profileComplete: false,
+    next: "/complete-profile",
+  });
 }

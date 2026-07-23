@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Copy, Check } from "lucide-react";
+import { ArrowLeft, Copy, Check, RefreshCw } from "lucide-react";
 
 type TxnDetail = {
   id: string;
@@ -42,17 +42,32 @@ export default function HistoryDetailPage() {
   const [txn, setTxn] = useState<TxnDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadTxn = useCallback(
+    async (force = false) => {
+      if (!id) return;
+      if (force) {
+        setRefreshing(true);
+      }
+      setError(null);
+      try {
+        const res = await fetch(`/api/wallet/transactions/${id}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Not found");
+        setTxn(data);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load");
+      } finally {
+        setRefreshing(false);
+      }
+    },
+    [id],
+  );
 
   useEffect(() => {
-    if (!id) return;
-    fetch(`/api/wallet/transactions/${id}`)
-      .then(async (r) => {
-        const data = await r.json();
-        if (!r.ok) throw new Error(data.error || "Not found");
-        setTxn(data);
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
-  }, [id]);
+    void loadTxn();
+  }, [loadTxn]);
 
   async function copyRef() {
     if (!txn?.reference) return;
@@ -63,13 +78,24 @@ export default function HistoryDetailPage() {
 
   return (
     <div className="animate-fade-up px-5 pt-6 pb-28">
-      <button
-        type="button"
-        onClick={() => router.push("/history")}
-        className="flex items-center gap-1.5 text-xs text-brand-muted font-body mb-5"
-      >
-        <ArrowLeft size={14} /> Back to history
-      </button>
+      <div className="flex items-center justify-between gap-3 mb-5">
+        <button
+          type="button"
+          onClick={() => router.push("/history")}
+          className="flex items-center gap-1.5 text-xs text-brand-muted font-body"
+        >
+          <ArrowLeft size={14} /> Back to history
+        </button>
+        <button
+          type="button"
+          onClick={() => void loadTxn(true)}
+          disabled={refreshing}
+          className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 disabled:opacity-60"
+        >
+          <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </button>
+      </div>
 
       {error && (
         <div className="card p-6 text-center text-sm text-brand-red font-body">{error}</div>

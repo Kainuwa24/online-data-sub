@@ -1,16 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { TopBar } from "@/components/layout/TopBar";
-import { ArrowDownRight, ArrowUpRight, Copy, Check, Building2, Shield } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Copy, Check, Building2, Shield, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import {
+  useAppCache,
+  type FundingProviderId,
+  type WalletSnapshot,
+  type WalletTransaction,
+} from "@/components/app/AppCacheProvider";
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 }
 
 type Account = {
+  provider?: string;
   bankName: string;
   accountNumber: string;
   accountName: string;
@@ -18,53 +25,202 @@ type Account = {
   kycIncomplete?: boolean;
 };
 
+const PROVIDER_META: Record<
+  FundingProviderId,
+  { label: string; short: string; createLabel: string }
+> = {
+  palmpay: {
+    label: "PalmPay",
+    short: "PalmPay",
+    createLabel: "Create PalmPay account",
+  },
+  flutterwave: {
+    label: "Flutterwave",
+    short: "Flutterwave",
+    createLabel: "Create Flutterwave account",
+  },
+};
+
+function applySnapshotLocal(
+  snapshot: WalletSnapshot,
+  setters: {
+    setBalanceKobo: (v: number) => void;
+    setTransactions: (v: WalletTransaction[]) => void;
+    setAccount: (v: Account | null) => void;
+    setKycReady: (v: boolean) => void;
+    setConfigured: (v: boolean) => void;
+    setFundingProvider: (v: FundingProviderId) => void;
+    setProviders: (v: WalletSnapshot["providers"]) => void;
+  },
+) {
+  setters.setBalanceKobo(snapshot.balanceKobo);
+  setters.setTransactions(snapshot.transactions || []);
+  setters.setAccount(snapshot.account ? { ...snapshot.account } : null);
+  setters.setKycReady(snapshot.kycReady);
+  setters.setConfigured(snapshot.configured);
+  if (snapshot.fundingProvider) setters.setFundingProvider(snapshot.fundingProvider);
+  if (snapshot.providers) setters.setProviders(snapshot.providers);
+}
+
 export default function WalletPage() {
+  const { wallet, setWallet, updateWallet } = useAppCache();
   const { success, error: toastError, info } = useToast();
-  const [balanceKobo, setBalanceKobo] = useState(0);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [account, setAccount] = useState<Account | null>(null);
-  const [kycReady, setKycReady] = useState(false);
-  const [configured, setConfigured] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [balanceKobo, setBalanceKobo] = useState(wallet?.balanceKobo ?? 0);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>(wallet?.transactions ?? []);
+  const [account, setAccount] = useState<Account | null>(
+    wallet?.account ? { ...wallet.account } : null,
+  );
+  const [kycReady, setKycReady] = useState(wallet?.kycReady ?? false);
+  const [configured, setConfigured] = useState(wallet?.configured ?? false);
+  const [fundingProvider, setFundingProvider] = useState<FundingProviderId>(
+    wallet?.fundingProvider ?? "palmpay",
+  );
+  const [providers, setProviders] = useState(wallet?.providers);
+  const [loading, setLoading] = useState(!wallet);
+  const [refreshing, setRefreshing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [simAmount, setSimAmount] = useState("2000");
   const isDev = process.env.NODE_ENV === "development";
+  const initialLoadDone = useRef(false);
 
-  const refresh = useCallback(() => {
-    fetch("/api/wallet/balance")
-      .then((r) => r.json())
-      .then((d) => {
-        setBalanceKobo(d.balanceKobo);
-        setTransactions(d.transactions || []);
-      });
-    fetch("/api/wallet/funding/account")
-      .then((r) => r.json())
-      .then((d) => {
-        setConfigured(Boolean(d.configured));
-        setAccount(d.account);
-        setKycReady(Boolean(d.kycReady));
-      });
+  const localSetters = {
+    setBalanceKobo,
+    setTransactions,
+    setAccount,
+    setKycReady,
+    setConfigured,
+    setFundingProvider,
+    setProviders,
+  };
+
+  const loadForProvider = useCallback(
+    async (provider: FundingProviderId, opts?: { quiet?: boolean }) => {
+      if (!opts?.quiet) setLoading(true);
+      try {
+        const [balanceRes, accountRes] = await Promise.all([
+          fetch("/api/wallet/balance"),
+          fetch(`/api/wallet/funding/account?provider=${provider}`),
+        ]);
+        const balanceData = await balanceRes.json();
+        const accountData = await accountRes.json();
+        const nextProvider: FundingProviderId =
+          accountData.provider === "flutterwave" ? "flutterwave" : "palmpay";
+
+        const snapshot: WalletSnapshot = {
+          balanceKobo: balanceData.balanceKobo ?? 0,
+          transactions: balanceData.transactions || [],
+          account: accountData.account
+            ? {
+                provider: accountData.account.provider || nextProvider,
+                bankName: accountData.account.bankName,
+                accountNumber: accountData.account.accountNumber,
+                accountName: accountData.account.accountName,
+                accountReference: accountData.account.accountReference,
+                kycIncomplete: accountData.account.kycIncomplete,
+              }
+            : null,
+          kycReady: Boolean(accountData.kycReady),
+          configured: Boolean(accountData.configured),
+          fundingProvider: nextProvider,
+          providers: accountData.providers,
+        };
+
+        applySnapshotLocal(snapshot, localSetters);
+        setWallet(snapshot);
+        return snapshot;
+      } catch {
+        toastError("Could not refresh wallet");
+        return null;
+      } finally {
+        if (!opts?.quiet) setLoading(false);
+      }
+    },
+    // local setters are stable useState dispatchers; setWallet stabilized in provider
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setWallet, toastError],
+  );
+
+  // One-shot initial load — never re-enter setWallet from a wallet dependency loop
+  useEffect(() => {
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+
+    if (wallet) {
+      applySnapshotLocal(wallet, localSetters);
+      setLoading(false);
+      return;
+    }
+
+    void loadForProvider("palmpay");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+  async function selectProvider(provider: FundingProviderId) {
+    if (provider === fundingProvider && account) return;
+    setFundingProvider(provider);
+    setAccount(null);
+    await loadForProvider(provider);
+  }
+
+  async function refreshAccount() {
+    setRefreshing(true);
+    try {
+      await loadForProvider(fundingProvider);
+      info("Wallet account refreshed");
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   async function createAccount(forceRecreate = false) {
     setLoading(true);
-    const res = await fetch("/api/wallet/funding/account", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ forceRecreate }),
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) {
-      toastError(data.error || "Could not create funding account");
-      return;
+    try {
+      const res = await fetch("/api/wallet/funding/account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ forceRecreate, provider: fundingProvider }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toastError(data.error || "Could not create funding account");
+        return;
+      }
+      if (data.account) {
+        const nextAccount: Account = {
+          provider: data.account.provider || fundingProvider,
+          bankName: data.account.bankName,
+          accountNumber: data.account.accountNumber,
+          accountName: data.account.accountName,
+          accountReference: data.account.accountReference,
+          kycIncomplete: data.account.kycIncomplete,
+        };
+        setAccount(nextAccount);
+        setConfigured(true);
+        setKycReady(true);
+        updateWallet((current) =>
+          current
+            ? {
+                ...current,
+                account: nextAccount,
+                configured: true,
+                kycReady: true,
+                fundingProvider,
+              }
+            : {
+                balanceKobo,
+                transactions,
+                account: nextAccount,
+                configured: true,
+                kycReady: true,
+                fundingProvider,
+                providers,
+              },
+        );
+      }
+      success(data.instructions || "Funding account ready");
+    } finally {
+      setLoading(false);
     }
-    setAccount(data.account);
-    success(data.instructions || "Funding account ready");
   }
 
   async function copyNumber() {
@@ -77,41 +233,81 @@ export default function WalletPage() {
 
   async function simulate() {
     setLoading(true);
-    const res = await fetch("/api/wallet/funding/simulate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: Number(simAmount) }),
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) {
-      toastError(data.error || "Simulate failed");
-      return;
+    try {
+      const res = await fetch("/api/wallet/funding/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: Number(simAmount) }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toastError(data.error || "Simulate failed");
+        return;
+      }
+      success("Simulated funding successful");
+      await loadForProvider(fundingProvider, { quiet: true });
+    } finally {
+      setLoading(false);
     }
-    success("Simulated funding successful");
-    refresh();
   }
 
+  const meta = PROVIDER_META[fundingProvider];
+  const palmpayEnabled = providers?.palmpay?.enabled ?? true;
+  const flutterwaveEnabled = providers?.flutterwave?.enabled ?? false;
+
   return (
-    <div className="animate-fade-up pb-6">
+    <div className="animate-fade-up pb-28 relative z-0">
       <TopBar subtitle="Manage" title="Wallet" initial="W" />
       <div className="px-5">
-        <div className="rounded-[28px] p-6 mt-1 text-white relative overflow-hidden shadow-glow bg-wallet-card">
-          <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+        <div className="rounded-2xl p-5 mt-1 text-white relative overflow-hidden shadow-glow bg-wallet-card">
+          <div className="absolute inset-x-0 top-0 h-px bg-white/35" />
           <div className="relative">
             <div className="text-[11px] uppercase tracking-[0.12em] text-white/70 font-body">
               Available balance
             </div>
-            <div className="text-[32px] font-display font-extrabold mt-2 tracking-tight">
+            <div className="text-[31px] font-display font-extrabold mt-2 tracking-tight">
               {naira(balanceKobo)}
             </div>
           </div>
         </div>
 
         <div className="section-label mt-7 mb-3">Fund via bank transfer</div>
+        <div className="flex items-center justify-between gap-2 -mt-1 mb-3">
+          <div className="inline-flex rounded-full border border-gray-200 dark:border-gray-700 p-0.5 bg-white/70 dark:bg-gray-900/40">
+            {(["palmpay", "flutterwave"] as FundingProviderId[]).map((id) => {
+              const enabled = id === "palmpay" ? palmpayEnabled : flutterwaveEnabled;
+              const active = fundingProvider === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => void selectProvider(id)}
+                  disabled={loading}
+                  className={`rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors ${
+                    active
+                      ? "bg-brand-ink text-white"
+                      : "text-gray-600 dark:text-gray-300"
+                  } ${!enabled && !active ? "opacity-50" : ""}`}
+                >
+                  {PROVIDER_META[id].short}
+                  {!enabled ? " · off" : ""}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            onClick={() => void refreshAccount()}
+            disabled={loading || refreshing}
+            className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 disabled:opacity-60"
+          >
+            <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
 
         {!kycReady && (
-          <div className="rounded-2xl border border-amber-200/80 bg-amber-50 p-4 mb-3 flex gap-3">
+          <div className="rounded-xl border border-amber-200/80 bg-amber-50 p-4 mb-3 flex gap-3">
             <Shield size={18} className="text-amber-700 shrink-0 mt-0.5" />
             <div className="text-xs font-body text-amber-900 leading-relaxed">
               Add your BVN or NIN under{" "}
@@ -128,6 +324,9 @@ export default function WalletPage() {
             <div className="flex items-center gap-2 text-brand-muted text-[11px] font-body mb-1">
               <Building2 size={14} />
               {account.bankName}
+              <span className="ml-auto rounded-full bg-brand-blueSoft text-brand-blue px-2 py-0.5 text-[10px] font-bold">
+                {meta.label}
+              </span>
             </div>
             <div className="flex items-center justify-between gap-2 mt-2">
               <div className="text-2xl font-mono font-bold tracking-wider text-brand-ink">
@@ -135,8 +334,8 @@ export default function WalletPage() {
               </div>
               <button
                 type="button"
-                onClick={copyNumber}
-                className="flex items-center gap-1.5 rounded-xl bg-brand-blueSoft text-brand-blue px-3 py-2 text-xs font-bold font-body"
+                onClick={() => void copyNumber()}
+                className="flex items-center gap-1.5 rounded-lg bg-brand-blueSoft text-brand-blue px-3 py-2 text-xs font-bold font-body"
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 {copied ? "Copied" : "Copy"}
@@ -145,12 +344,12 @@ export default function WalletPage() {
             <div className="text-[11px] text-brand-muted font-body mt-3">Account name</div>
             <div className="text-sm font-semibold font-body text-brand-ink">{account.accountName}</div>
             <p className="text-[11px] text-brand-muted font-body mt-3 leading-relaxed">
-              Transfer any amount from your bank app. Your wallet updates after PalmPay confirms.
+              Transfer any amount from your bank app. Your wallet updates after {meta.label} confirms.
             </p>
             {account.kycIncomplete && (
               <button
                 type="button"
-                onClick={() => createAccount(true)}
+                onClick={() => void createAccount(true)}
                 disabled={loading || !kycReady}
                 className="mt-4 w-full btn-secondary !py-3"
               >
@@ -161,20 +360,20 @@ export default function WalletPage() {
         ) : (
           <button
             type="button"
-            onClick={() => createAccount(false)}
+            onClick={() => void createAccount(false)}
             disabled={loading || !kycReady || !configured}
             className="btn-primary mb-3"
           >
             {loading
               ? "Creating account…"
               : !configured
-                ? "PalmPay not configured"
-                : "Create funding account"}
+                ? `${meta.label} not configured`
+                : meta.createLabel}
           </button>
         )}
 
         {isDev && (
-          <div className="rounded-2xl border border-dashed border-brand-line p-4 mb-3 bg-white/60">
+          <div className="rounded-xl border border-dashed border-brand-line p-4 mb-3 bg-white/60">
             <div className="text-[11px] text-brand-muted font-body mb-2 font-semibold">
               Dev: simulate funding (₦)
             </div>
@@ -187,9 +386,9 @@ export default function WalletPage() {
               />
               <button
                 type="button"
-                onClick={simulate}
+                onClick={() => void simulate()}
                 disabled={loading}
-                className="rounded-2xl bg-brand-ink text-white px-4 text-xs font-bold font-body"
+                className="rounded-xl bg-brand-ink text-white px-4 text-xs font-bold font-body"
               >
                 Credit
               </button>
@@ -219,7 +418,7 @@ export default function WalletPage() {
             >
               <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
                     t.type === "CREDIT" ? "bg-brand-blueSoft" : "bg-brand-redSoft"
                   }`}
                 >

@@ -22,6 +22,7 @@ import {
   type CheckoutPayload,
 } from "@/lib/checkout";
 import { formatPhoneDisplay } from "@/lib/phone";
+import { useAppCache } from "@/components/app/AppCacheProvider";
 
 type Phase = "review" | "processing" | "success" | "failed";
 
@@ -45,6 +46,12 @@ function Row({ label, value }: { label: string; value: string }) {
 export default function ConfirmPurchasePage() {
   const router = useRouter();
   const { success: toastSuccess } = useToast();
+  const {
+    updateWallet,
+    clearHistory,
+    updateUnreadCount,
+    updateNotifications,
+  } = useAppCache();
   const [payload, setPayload] = useState<CheckoutPayload | null>(null);
   const [ready, setReady] = useState(false);
   const [phase, setPhase] = useState<Phase>("review");
@@ -137,6 +144,10 @@ export default function ConfirmPurchasePage() {
         }
 
         clearCheckout();
+        updateWallet(() => undefined);
+        clearHistory();
+        updateUnreadCount(() => undefined);
+        updateNotifications(() => undefined);
         setReference(data.reference || null);
         setPhase("success");
         toastSuccess("Payment successful");

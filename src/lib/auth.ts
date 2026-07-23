@@ -14,6 +14,33 @@ export async function comparePin(pin: string, hash: string) {
   return bcrypt.compare(pin, hash);
 }
 
+export async function hashPassword(password: string) {
+  return bcrypt.hash(password, 12);
+}
+
+export async function comparePassword(password: string, hash: string) {
+  return bcrypt.compare(password, hash);
+}
+
+export function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+export function isValidEmail(email: string) {
+  // Practical email check (not full RFC)
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
+}
+
+export function validatePassword(password: string): { ok: true } | { ok: false; error: string } {
+  if (!password || password.length < 8) {
+    return { ok: false, error: "Password must be at least 8 characters" };
+  }
+  if (password.length > 72) {
+    return { ok: false, error: "Password is too long" };
+  }
+  return { ok: true };
+}
+
 export function signSession(userId: string) {
   return jwt.sign({ sub: userId }, JWT_SECRET, { expiresIn: "30d" });
 }

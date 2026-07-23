@@ -10,14 +10,15 @@
   --brand-ink: #0f172a;
   --brand-muted: #64748b;
   --brand-line: #e8ecf2;
-  --shadow-soft: 0 4px 24px -4px rgba(15, 23, 42, 0.08);
-  --shadow-card: 0 8px 30px -8px rgba(44, 90, 160, 0.14);
-  --shadow-glow: 0 12px 40px -12px rgba(44, 90, 160, 0.45);
-  --shadow-nav: 0 -8px 30px -12px rgba(15, 23, 42, 0.12);
+  --font-sora: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-inter: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --shadow-soft: 0 3px 16px -6px rgba(15, 23, 42, 0.16);
+  --shadow-card: 0 10px 28px -18px rgba(15, 23, 42, 0.24);
+  --shadow-glow: 0 14px 32px -20px rgba(44, 90, 160, 0.55);
+  --shadow-nav: 0 -8px 24px -18px rgba(15, 23, 42, 0.24);
   --mesh-light:
-    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(44, 90, 160, 0.12), transparent),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(163, 52, 46, 0.06), transparent),
-    linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    linear-gradient(180deg, #f8fafc 0%, #eef3f8 52%, #f8fafc 100%);
 }
 
 @layer base {
@@ -27,13 +28,16 @@
   }
 
   body {
-    font-family: var(--font-inter), Inter, system-ui, sans-serif;
+    font-family: var(--font-inter), system-ui, sans-serif;
     color: var(--brand-ink);
     min-height: 100vh;
+    min-height: 100dvh;
+    background-color: #f7f8fa;
     background-image: var(--mesh-light);
     background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: none;
   }
 
   html.dark body {
@@ -42,10 +46,13 @@
   }
 
   html.dark .card,
-  html.dark .card-interactive,
-  html.dark .auth-panel {
+  html.dark .card-interactive {
     background: #111827;
     border-color: #1f2937;
+  }
+
+  html.dark .auth-app {
+    background: #0b1220;
   }
 
   html.dark .input-premium {
@@ -80,14 +87,14 @@
   }
 
   .card {
-    border-radius: 1.5rem;
+    border-radius: 1rem;
     background: #fff;
     border: 1px solid rgba(232, 236, 242, 0.9);
     box-shadow: var(--shadow-soft);
   }
 
   .card-interactive {
-    border-radius: 1.5rem;
+    border-radius: 1rem;
     background: #fff;
     border: 1px solid rgba(232, 236, 242, 0.9);
     box-shadow: var(--shadow-soft);
@@ -108,20 +115,24 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--brand-muted);
-    font-family: var(--font-inter), Inter, system-ui, sans-serif;
+    font-family: var(--font-inter), system-ui, sans-serif;
   }
 
   .input-premium {
     width: 100%;
-    border-radius: 1rem;
+    border-radius: 0.95rem;
     border: 1px solid var(--brand-line);
     background: #fff;
-    padding: 0.875rem 1rem;
-    font-size: 0.875rem;
-    font-family: var(--font-inter), Inter, system-ui, sans-serif;
+    padding: 0.95rem 1rem;
+    font-size: 1rem;
+    line-height: 1.35;
+    font-family: var(--font-inter), system-ui, sans-serif;
     color: var(--brand-ink);
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    /* iOS-friendly; avoids zoom on focus when >=16px */
+    -webkit-appearance: none;
+    appearance: none;
   }
 
   .input-premium::placeholder {
@@ -135,11 +146,12 @@
 
   .btn-primary {
     width: 100%;
-    border-radius: 1rem;
-    padding: 0.875rem 1rem;
-    font-size: 0.875rem;
+    border-radius: 0.95rem;
+    padding: 1rem 1rem;
+    min-height: 3.15rem;
+    font-size: 0.9375rem;
     font-weight: 700;
-    font-family: var(--font-inter), Inter, system-ui, sans-serif;
+    font-family: var(--font-inter), system-ui, sans-serif;
     color: #fff;
     background: linear-gradient(to bottom, var(--brand-blue), var(--brand-blue-dark));
     box-shadow: var(--shadow-glow);
@@ -165,16 +177,17 @@
 
   .btn-secondary {
     width: 100%;
-    border-radius: 1rem;
-    padding: 0.875rem 1rem;
-    font-size: 0.875rem;
+    border-radius: 0.95rem;
+    padding: 1rem 1rem;
+    min-height: 3.15rem;
+    font-size: 0.9375rem;
     font-weight: 700;
-    font-family: var(--font-inter), Inter, system-ui, sans-serif;
+    font-family: var(--font-inter), system-ui, sans-serif;
     background: #fff;
     border: 1px solid var(--brand-line);
     color: var(--brand-ink);
-    box-shadow: var(--shadow-soft);
-    transition: background 0.2s ease, transform 0.15s ease;
+    box-shadow: none;
+    transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
     cursor: pointer;
   }
 
@@ -187,28 +200,96 @@
   }
 
   .glass-nav {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border: 1px solid rgba(232, 236, 242, 0.7);
     box-shadow: var(--shadow-nav);
   }
 
+  /* Kept for a few in-app forms that still reference it; no chrome on auth screens */
   .auth-panel {
-    border-radius: 1.75rem;
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(255, 255, 255, 0.85);
-    box-shadow: var(--shadow-card);
-    padding: 1.5rem;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    border-radius: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* Native-app auth chrome (phone width, flat, safe areas) */
+  .auth-app {
+    min-height: 100dvh;
+    min-height: 100vh;
+    background: #f7f8fa;
+    display: flex;
+    justify-content: center;
+  }
+
+  .auth-app-inner {
+    width: 100%;
+    max-width: 28rem;
+    min-height: 100dvh;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding:
+      max(1rem, env(safe-area-inset-top))
+      max(1.25rem, env(safe-area-inset-right))
+      max(1.25rem, env(safe-area-inset-bottom))
+      max(1.25rem, env(safe-area-inset-left));
+    background: #f7f8fa;
+  }
+
+  .auth-app-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .auth-app-mark {
+    height: 2.5rem;
+    width: 2.5rem;
+    border-radius: 0.85rem;
+    background: linear-gradient(160deg, var(--brand-blue), var(--brand-blue-dark));
+    box-shadow: 0 8px 20px -10px rgba(44, 90, 160, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .auth-app-mark span {
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 800;
+    font-family: var(--font-sora), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .auth-app-main {
+    flex: 1;
+    padding-top: 1.75rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .auth-app-footer {
+    text-align: center;
+    font-size: 0.8125rem;
+    color: var(--brand-muted);
+    font-family: var(--font-inter), system-ui, sans-serif;
+    padding-top: 0.5rem;
+    padding-bottom: 0.25rem;
   }
 
   .divider-or {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin: 1.25rem 0;
+    margin: 1.35rem 0;
   }
 
   .divider-or::before,
@@ -217,6 +298,129 @@
     flex: 1;
     height: 1px;
     background: var(--brand-line);
+  }
+
+  /* Splash (brand flash before login/home) */
+  .splash-screen {
+    min-height: 100dvh;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f7f8fa;
+    padding:
+      max(1rem, env(safe-area-inset-top))
+      1.5rem
+      max(1.5rem, env(safe-area-inset-bottom));
+  }
+
+  html.dark .splash-screen {
+    background: #0b1220;
+  }
+
+  .splash-logo-wrap {
+    position: relative;
+    width: 6rem;
+    height: 6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .splash-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    border: 1.5px solid var(--brand-blue);
+    animation: splash-pulse 2.8s ease-out infinite;
+    pointer-events: none;
+  }
+
+  .splash-ring:nth-child(2) {
+    animation-delay: 0.9s;
+  }
+
+  .splash-mark {
+    position: relative;
+    z-index: 1;
+    width: 4.25rem;
+    height: 4.25rem;
+    border-radius: 1.15rem;
+    background: linear-gradient(160deg, var(--brand-blue), var(--brand-blue-dark));
+    box-shadow: 0 14px 32px -14px rgba(44, 90, 160, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: splash-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  }
+
+  .splash-mark span {
+    color: #fff;
+    font-size: 1.15rem;
+    font-weight: 800;
+    font-family: var(--font-sora), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .splash-title {
+    margin-top: 1.35rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    font-family: var(--font-sora), system-ui, sans-serif;
+    display: flex;
+    gap: 0.35rem;
+    animation: splash-fadein 0.4s ease-out 0.1s both;
+  }
+
+  .splash-tagline {
+    margin-top: 0.4rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--brand-muted);
+    font-family: var(--font-inter), system-ui, sans-serif;
+    animation: splash-fadein 0.4s ease-out 0.18s both;
+  }
+}
+
+@keyframes splash-pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes splash-fadein {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splash-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 

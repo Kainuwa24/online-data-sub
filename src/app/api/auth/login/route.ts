@@ -1,63 +1,81 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { comparePin, signSession, generateOtpCode } from "@/lib/auth";
+import {
+  comparePassword,
+  isValidEmail,
+  normalizeEmail,
+} from "@/lib/auth";
+import { signSession } from "@/lib/auth";
 import { setSessionCookie } from "@/lib/session";
-import { validateNgPhone } from "@/lib/phone";
-import { sendOtpSms } from "@/lib/services/termii";
+import { isProfileComplete } from "@/lib/google-oauth";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const phoneCheck = validateNgPhone(String(body.phone || ""));
-  const pin = String(body.pin || "");
+  const body = await req.json().catch(() => ({}));
+  const email = normalizeEmail(String(body.email || ""));
+  const password = String(body.password || "");
 
-  if (!phoneCheck.ok) {
-    return NextResponse.json({ error: phoneCheck.error }, { status: 400 });
+  if (!isValidEmail(email)) {
+    return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
   }
-  if (!pin) {
-    return NextResponse.json({ error: "PIN is required" }, { status: 400 });
+  if (!password) {
+    return NextResponse.json({ error: "Password is required" }, { status: 400 });
   }
-  const phone = phoneCheck.phone;
 
-  const user = await prisma.user.findUnique({ where: { phone } });
+  // Explicit select so a stale Prisma singleton can't silently drop passwordHash
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      passwordHash: true,
+      googleId: true,
+      phone: true,
+      pinHash: true,
+      bvn: true,
+      nin: true,
+    },
+  });
   if (!user) {
-    return NextResponse.json({ error: "No account found for that phone number" }, { status: 404 });
+    return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
-  if (!user.pinHash) {
+  // Fallback if runtime client ever omits the column from the model result
+  let passwordHash = user.passwordHash;
+  if (!passwordHash) {
+    try {
+      const rows = await prisma.$queryRaw<Array<{ passwordHash: string | null }>>`
+        SELECT passwordHash FROM User WHERE email = ${email} LIMIT 1
+      `;
+      passwordHash = rows[0]?.passwordHash ?? null;
+    } catch (e) {
+      console.error("[auth/login] passwordHash raw fallback failed", e);
+    }
+  }
+
+  if (!passwordHash) {
     return NextResponse.json(
-      { error: "This account uses Google sign-in. Finish setup or continue with Google." },
+      {
+        error: user.googleId
+          ? "This account uses Google sign-in. Continue with Google instead."
+          : "This account has no password set. Use Google or create a new account.",
+      },
       { status: 400 },
     );
   }
 
-  const valid = await comparePin(pin, user.pinHash);
+  const valid = await comparePassword(password, passwordHash);
   if (!valid) {
-    return NextResponse.json({ error: "Incorrect PIN" }, { status: 401 });
-  }
-
-  if (!user.phoneVerifiedAt) {
-    const code = generateOtpCode();
-    await prisma.otpCode.create({
-      data: {
-        phone,
-        code,
-        purpose: "signup",
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      },
-    });
-    await sendOtpSms(phone, code);
-    return NextResponse.json(
-      {
-        error: "Phone not verified. We sent a new code.",
-        needsOtp: true,
-        phone,
-      },
-      { status: 403 },
-    );
+    return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
   const token = signSession(user.id);
   setSessionCookie(token);
 
-  return NextResponse.json({ ok: true, userId: user.id });
+  const complete = isProfileComplete(user);
+  return NextResponse.json({
+    ok: true,
+    userId: user.id,
+    profileComplete: complete,
+    next: complete ? "/home" : "/complete-profile",
+  });
 }

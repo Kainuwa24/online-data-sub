@@ -45,6 +45,8 @@ Fill these in the Blueprint form / Environment tab:
 | `PALMPAY_MERCHANT_PRIVATE_KEY` | Full private key (paste as one line or with `\n`) |
 | `PALMPAY_PUBLIC_KEY` | PalmPay public key for webhook verify |
 | `PALMPAY_MERCHANT_PUBLIC_KEY` | If PalmPay issued one |
+| `FLUTTERWAVE_SECRET_KEY` | Optional secondary funding provider |
+| `FLUTTERWAVE_SECRET_HASH` | Webhook secret hash from Flutterwave dashboard |
 | `GOOGLE_CLIENT_ID` | Optional for Google login |
 | `GOOGLE_CLIENT_SECRET` | Optional |
 | `TERMII_API_KEY` | Optional until SMS works |
@@ -83,7 +85,7 @@ Authorized redirect URIs:
   https://YOUR-SERVICE.onrender.com/api/auth/google/callback
 ```
 
-### 3.3 PalmPay webhook (required for funding)
+### 3.3 PalmPay webhook (required for PalmPay funding)
 
 In PalmPay merchant dashboard, register:
 
@@ -93,7 +95,17 @@ POST https://YOUR-SERVICE.onrender.com/api/webhooks/palmpay
 
 Response body must be plain text `success` (already implemented).
 
-### 3.4 PalmPay IP whitelist (required for VA create)
+### 3.4 Flutterwave webhook (optional secondary funding)
+
+In Flutterwave dashboard → Settings → Webhooks:
+
+```text
+POST https://YOUR-SERVICE.onrender.com/api/webhooks/flutterwave
+```
+
+Use the same secret hash as `FLUTTERWAVE_SECRET_HASH`. Subscribe to charge/virtual-account events.
+
+### 3.5 PalmPay IP whitelist (required for VA create)
 
 VA create failed locally with `request ip not in ip white list`.  
 On Render, whitelist **Render outbound IPs** for your service/region in the PalmPay console.
@@ -107,7 +119,7 @@ Without whitelist, `/api/wallet/funding/account` keeps failing even with a publi
 
 1. Open the site → sign up (Google/magic link/phone)  
 2. Complete profile (phone, BVN/NIN, PIN)  
-3. Wallet → **Create funding account**  
+3. Wallet → pick **PalmPay** or **Flutterwave** → **Create funding account**  
 4. Transfer small amount from your bank  
 5. Confirm wallet balance increases via webhook  
 6. Buy data with PIN confirm  

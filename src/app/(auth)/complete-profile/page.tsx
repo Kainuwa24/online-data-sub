@@ -6,12 +6,13 @@ import { TextField } from "@/components/ui/TextField";
 import { PhoneField } from "@/components/ui/PhoneField";
 import { Button } from "@/components/ui/Button";
 import { PinDots, NumPad } from "@/components/ui/PinPad";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { isValidNgPhone, validateNgPhone } from "@/lib/phone";
 
 /**
- * First-time setup for every signup path (Google, magic link, phone).
+ * First-time setup for every signup path (Google, email/password).
  * Step 1: details (name, phone, BVN/NIN)
- * Step 2: create PIN  ← PIN is never collected before this
+ * Step 2: create transaction PIN
  */
 export default function CompleteProfilePage() {
   const router = useRouter();
@@ -33,7 +34,6 @@ export default function CompleteProfilePage() {
           router.replace("/login");
           return;
         }
-        // Already fully set up
         if (d.profileComplete) {
           router.replace("/home");
           return;
@@ -110,37 +110,25 @@ export default function CompleteProfilePage() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen px-6 py-10 max-w-sm mx-auto text-sm text-gray-500 font-body">
-        Loading…
+      <div className="auth-app">
+        <div className="auth-app-inner flex items-center justify-center text-sm text-brand-muted font-body">
+          Loading…
+        </div>
       </div>
     );
   }
 
   if (step === "details") {
     return (
-      <div className="min-h-screen px-5 py-10 max-w-md mx-auto pb-16 animate-fade-up">
-        <div className="flex items-center gap-2.5 mb-8">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-brand-blue to-brand-blueDark shadow-glow flex items-center justify-center">
-            <span className="text-white text-xs font-display font-extrabold">OD</span>
-          </div>
-          <span className="font-display font-bold text-sm text-brand-ink">Online Data Sub</span>
-        </div>
-        <div className="text-[10px] font-body font-semibold uppercase tracking-[0.14em] text-brand-blue">
-          Step 1 of 2
-        </div>
-        <div className="text-[28px] font-display font-extrabold mt-2 tracking-tight text-brand-ink">
-          Your details
-        </div>
-        <div className="text-sm text-brand-muted font-body mt-2 mb-6 leading-relaxed">
-          Phone and identity first. You’ll create your PIN next.
-        </div>
-        <div className="auth-panel">
-
+      <AuthShell
+        eyebrow="Step 1 of 2"
+        title="Your details"
+        subtitle="Phone and identity first. You’ll create your PIN next."
+      >
         <TextField label="Full name" placeholder="Your name" value={name} onChange={setName} />
-
         <PhoneField label="Phone number" value={phone} onChange={setPhone} />
 
-        <div className="text-xs font-semibold text-gray-500 font-body mt-2 mb-2">
+        <div className="text-xs font-semibold text-brand-muted font-body mt-1 mb-2">
           Identity (required for wallet funding)
         </div>
         <TextField
@@ -150,7 +138,7 @@ export default function CompleteProfilePage() {
           onChange={setBvn}
           type="tel"
         />
-        <div className="text-center text-[11px] text-gray-400 font-body -mt-1 mb-2">or</div>
+        <div className="text-center text-[11px] text-brand-muted font-body -mt-1 mb-2">or</div>
         <TextField
           label="NIN (11 digits)"
           placeholder="Enter NIN if you prefer"
@@ -160,41 +148,37 @@ export default function CompleteProfilePage() {
         />
 
         {error && (
-          <div className="text-center text-brand-red text-xs font-body mt-3 font-medium">{error}</div>
+          <div className="text-center text-brand-red text-xs font-body mt-1 mb-3 font-medium">
+            {error}
+          </div>
         )}
 
-        <div className="mt-2">
-          <Button onClick={goToPin} disabled={!detailsValid()}>
-            Continue to PIN
-          </Button>
-        </div>
-        </div>
-      </div>
+        <Button onClick={goToPin} disabled={!detailsValid()}>
+          Continue to PIN
+        </Button>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="min-h-screen px-5 py-10 max-w-md mx-auto pb-16 animate-fade-up">
-      <button
-        type="button"
-        onClick={() => {
-          setStep("details");
-          setPin("");
-          setError("");
-        }}
-        className="text-xs text-brand-muted font-body mb-4"
-      >
-        ← Back
-      </button>
-      <div className="text-[10px] font-body font-semibold uppercase tracking-[0.14em] text-brand-blue">
-        Step 2 of 2
-      </div>
-      <div className="text-[28px] font-display font-extrabold mt-2 tracking-tight">Create your PIN</div>
-      <div className="text-sm text-brand-muted font-body mt-2 mb-6">
-        4 digits — used to sign in with phone later.
-      </div>
-      <div className="auth-panel">
-
+    <AuthShell
+      eyebrow="Step 2 of 2"
+      title="Create your PIN"
+      subtitle="4 digits — used to confirm purchases, not for login."
+      footer={
+        <button
+          type="button"
+          onClick={() => {
+            setStep("details");
+            setPin("");
+            setError("");
+          }}
+          className="text-brand-blue font-semibold"
+        >
+          ← Back to details
+        </button>
+      }
+    >
       <PinDots length={4} filled={pin.length} />
       <NumPad
         onPress={press}
@@ -212,7 +196,6 @@ export default function CompleteProfilePage() {
       {loading && (
         <div className="text-center text-xs text-brand-muted font-body mt-4">Saving…</div>
       )}
-      </div>
-    </div>
+    </AuthShell>
   );
 }

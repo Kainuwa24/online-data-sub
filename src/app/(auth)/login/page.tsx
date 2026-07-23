@@ -2,131 +2,112 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { PhoneField } from "@/components/ui/PhoneField";
-import { PinDots, NumPad } from "@/components/ui/PinPad";
+import { TextField } from "@/components/ui/TextField";
 import { GoogleButton } from "@/components/auth/GoogleButton";
-import { MagicLinkForm } from "@/components/auth/MagicLinkForm";
 import { AuthShell } from "@/components/auth/AuthShell";
-import { formatPhoneDisplay, isValidNgPhone } from "@/lib/phone";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const oauthError = searchParams.get("error") || "";
 
-  const [step, setStep] = useState<"phone" | "pin">("phone");
-  const [phone, setPhone] = useState("");
-  const [pin, setPin] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(oauthError);
+  const [loading, setLoading] = useState(false);
 
-  async function submitPin(fullPin: string) {
+  const canSubmit = email.includes("@") && password.length >= 1 && !loading;
+
+  async function submit(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!canSubmit) return;
+    setLoading(true);
     setError("");
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, pin: fullPin }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      if (data.needsOtp) {
-        router.push(`/otp?phone=${encodeURIComponent(data.phone || phone)}&purpose=signup`);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Could not sign in");
         return;
       }
-      setError(data.error || "Something went wrong");
-      setPin("");
-      return;
+      router.push(data.next || "/home");
+      router.refresh();
+    } finally {
+      setLoading(false);
     }
-    router.push("/home");
-  }
-
-  function press(d: string) {
-    if (pin.length >= 4) return;
-    const next = pin + d;
-    setPin(next);
-    if (next.length === 4) submitPin(next);
-  }
-
-  if (step === "pin") {
-    return (
-      <AuthShell
-        eyebrow="Secure login"
-        title="Enter your PIN"
-        subtitle={`Confirm the 4-digit PIN for ${formatPhoneDisplay(phone)}`}
-      >
-        <PinDots length={4} filled={pin.length} />
-        <NumPad
-          onPress={press}
-          onBackspace={() => {
-            setPin(pin.slice(0, -1));
-            setError("");
-          }}
-        />
-        {error && (
-          <div className="text-center text-brand-red text-xs font-body mt-4 font-medium">{error}</div>
-        )}
-        <div className="text-center mt-5 space-y-2">
-          <a href="/forgot-pin" className="block text-brand-blue text-xs font-semibold font-body">
-            Forgot PIN?
-          </a>
-          <button
-            type="button"
-            onClick={() => {
-              setStep("phone");
-              setPin("");
-              setError("");
-            }}
-            className="text-brand-muted text-xs font-body"
-          >
-            ← Use a different number
-          </button>
-        </div>
-      </AuthShell>
-    );
   }
 
   return (
     <AuthShell
       eyebrow="Welcome back"
       title="Sign in"
-      subtitle="Google, email magic link, or phone + PIN."
+      subtitle="Google or email — same account on web and in the app."
       footer={
         <>
           New here?{" "}
-          <a href="/signup" className="text-brand-blue font-semibold">
+          <Link href="/signup" className="text-brand-blue font-semibold">
             Create an account
-          </a>
+          </Link>
         </>
       }
     >
       <GoogleButton label="Continue with Google" />
 
       <div className="divider-or">
-        <span className="text-[11px] text-brand-muted font-body shrink-0">or magic link</span>
-      </div>
-      <MagicLinkForm />
-
-      <div className="divider-or">
-        <span className="text-[11px] text-brand-muted font-body shrink-0">or phone</span>
+        <span className="text-[11px] text-brand-muted font-body shrink-0">or email</span>
       </div>
 
-      <PhoneField label="Phone number" value={phone} onChange={setPhone} />
-      <Button
-        onClick={() => {
-          if (!isValidNgPhone(phone)) {
-            setError("Enter a valid Nigerian mobile number");
-            return;
-          }
-          setError("");
-          setStep("pin");
-        }}
-        disabled={!isValidNgPhone(phone)}
-      >
-        Continue with PIN
-      </Button>
-      {error && (
-        <div className="text-center text-brand-red text-xs font-body mt-3 font-medium">{error}</div>
-      )}
+      <form onSubmit={(e) => void submit(e)} className="space-y-0">
+        <TextField
+          label="Email"
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={setEmail}
+        />
+
+        <div className="mb-6">
+          <label className="mb-1.5 block text-[11px] font-semibold tracking-wide text-brand-muted font-body">
+            Password
+          </label>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              className="input-premium pr-12"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-brand-muted hover:text-brand-ink"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <div className="text-center text-brand-red text-xs font-body mb-4 font-medium">{error}</div>
+        )}
+
+        <div className="pt-1">
+          <Button type="submit" disabled={!canSubmit}>
+            {loading ? "Signing in…" : "Sign in"}
+          </Button>
+        </div>
+      </form>
     </AuthShell>
   );
 }
