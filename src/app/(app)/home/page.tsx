@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Smartphone,
@@ -20,6 +20,7 @@ import {
   useAppCache,
   type WalletTransaction,
 } from "@/components/app/AppCacheProvider";
+import { useLiveWallet } from "@/hooks/useLiveWallet";
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -36,10 +37,34 @@ export default function HomePage() {
   const { profile, wallet, setProfile, setWallet, setHistory } = useAppCache();
   const [loading, setLoading] = useState(!(profile && wallet));
   const [error, setError] = useState<string | null>(null);
+  const initialLoadDone = useRef(false);
+
+  // Keep home balance/transactions fresh after bank funding webhooks
+  useLiveWallet({ intervalMs: 8_000, toastOnCredit: true });
 
   useEffect(() => {
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+
     if (profile && wallet) {
       setLoading(false);
+      // Quiet revalidate so a return visit doesn't keep a stale balance
+      void (async () => {
+        try {
+          const balanceRes = await fetch("/api/wallet/balance", { cache: "no-store" });
+          if (!balanceRes.ok) return;
+          const balanceData = await balanceRes.json();
+          const nextTransactions: WalletTransaction[] = balanceData.transactions || [];
+          setWallet({
+            ...wallet,
+            balanceKobo: balanceData.balanceKobo ?? wallet.balanceKobo,
+            transactions: nextTransactions,
+          });
+          setHistory("ALL", nextTransactions);
+        } catch {
+          // keep cached snapshot
+        }
+      })();
       return;
     }
 
@@ -49,9 +74,9 @@ export default function HomePage() {
       setError(null);
       try {
         const [profileRes, balanceRes, accountRes] = await Promise.all([
-          fetch("/api/profile"),
-          fetch("/api/wallet/balance"),
-          fetch("/api/wallet/funding/account"),
+          fetch("/api/profile", { cache: "no-store" }),
+          fetch("/api/wallet/balance", { cache: "no-store" }),
+          fetch("/api/wallet/funding/account", { cache: "no-store" }),
         ]);
 
         const [profileData, balanceData, accountData] = await Promise.all([

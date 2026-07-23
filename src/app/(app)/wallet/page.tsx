@@ -11,6 +11,7 @@ import {
   type WalletSnapshot,
   type WalletTransaction,
 } from "@/components/app/AppCacheProvider";
+import { useLiveWallet } from "@/hooks/useLiveWallet";
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -83,6 +84,21 @@ export default function WalletPage() {
   const isDev = process.env.NODE_ENV === "development";
   const initialLoadDone = useRef(false);
 
+  // Auto-update balance after bank transfers / webhooks (no full page reload)
+  useLiveWallet({ intervalMs: 6_000, toastOnCredit: true });
+
+  // Keep local UI in sync when live poll or other screens update the cache
+  useEffect(() => {
+    if (!wallet) return;
+    setBalanceKobo(wallet.balanceKobo);
+    setTransactions(wallet.transactions || []);
+    if (wallet.account) setAccount({ ...wallet.account });
+    setKycReady(wallet.kycReady);
+    setConfigured(wallet.configured);
+    if (wallet.fundingProvider) setFundingProvider(wallet.fundingProvider);
+    if (wallet.providers) setProviders(wallet.providers);
+  }, [wallet]);
+
   const localSetters = {
     setBalanceKobo,
     setTransactions,
@@ -98,8 +114,8 @@ export default function WalletPage() {
       if (!opts?.quiet) setLoading(true);
       try {
         const [balanceRes, accountRes] = await Promise.all([
-          fetch("/api/wallet/balance"),
-          fetch(`/api/wallet/funding/account?provider=${provider}`),
+          fetch("/api/wallet/balance", { cache: "no-store" }),
+          fetch(`/api/wallet/funding/account?provider=${provider}`, { cache: "no-store" }),
         ]);
         const balanceData = await balanceRes.json();
         const accountData = await accountRes.json();
@@ -148,6 +164,8 @@ export default function WalletPage() {
     if (wallet) {
       applySnapshotLocal(wallet, localSetters);
       setLoading(false);
+      // Still revalidate quietly so we don't show a stale cached balance after funding
+      void loadForProvider(wallet.fundingProvider ?? "palmpay", { quiet: true });
       return;
     }
 
