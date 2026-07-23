@@ -12,6 +12,7 @@ Mobile-first Next.js app for **data, airtime, bills**, wallet funding, and gold/
 - **Termii** — OTP SMS  
 - **GoldAPI** — gold price (optional)  
 - JWT session cookie, PIN hashed with bcrypt  
+- **Capacitor 8** — Android shell (loads production web app); see [MOBILE.md](./MOBILE.md)  
 
 Provider clients are ported from the `onlinedatasub` monorepo patterns.
 

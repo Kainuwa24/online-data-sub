@@ -12,12 +12,22 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "db:generate:prod": "prisma generate --schema prisma/schema.postgres.prisma",
-    "db:setup": "prisma db push && prisma generate"
+    "db:setup": "prisma db push && prisma generate",
+    "cap:sync": "cap sync",
+    "cap:android": "cap open android",
+    "cap:copy": "cap copy android",
+    "cap:sync:prod": "node -e \"if(!process.env.CAPACITOR_SERVER_URL&&!process.env.NEXT_PUBLIC_APP_URL){console.error('Set CAPACITOR_SERVER_URL or NEXT_PUBLIC_APP_URL to your Railway HTTPS origin');process.exit(1)}\" && cap sync android"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@prisma/client": "^5.18.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
@@ -27,8 +37,9 @@
     "react-dom": "^18.3.1",
     "undici": "^6.21.0"
   },
-
   "devDependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/cli": "^8.4.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.14.0",
