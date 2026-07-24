@@ -235,14 +235,10 @@ export default function HomePage() {
           <div className="px-5 pt-5">
             <Link
               href="/watch"
-              className="flex items-center justify-between rounded-2xl border border-brand-gold/25 px-4 py-3.5 active:scale-[0.99] transition-transform shadow-soft"
-              style={{
-                background:
-                  "linear-gradient(135deg, #F7F1E3 0%, #FFFFFF 55%, rgba(247, 241, 227, 0.65) 100%)",
-              }}
+              className="gold-watch-card flex items-center justify-between rounded-2xl px-4 py-3.5 active:scale-[0.99] transition-transform shadow-soft"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-10 w-10 rounded-xl bg-white border border-brand-gold/20 shadow-soft flex items-center justify-center shrink-0">
+                <div className="gold-watch-icon h-10 w-10 rounded-xl shadow-soft flex items-center justify-center shrink-0">
                   <TrendingUp size={18} className="text-brand-gold" strokeWidth={2} />
                 </div>
                 <div className="min-w-0">

@@ -582,3 +582,37 @@ html.dark .border-gray-300,
 html.dark .border-slate-300 {
   border-color: #1f2937 !important;
 }
+.gold-watch-card,
+.gold-price-card {
+  border: 1px solid rgba(140, 106, 34, 0.25);
+  background: linear-gradient(135deg, #f7f1e3 0%, #ffffff 55%, rgba(247, 241, 227, 0.72) 100%);
+}
+
+.gold-watch-icon {
+  border: 1px solid rgba(140, 106, 34, 0.2);
+  background: #ffffff;
+}
+
+html.dark .gold-watch-card,
+html.dark .gold-price-card {
+  border-color: rgba(248, 211, 111, 0.34) !important;
+  background: linear-gradient(135deg, #2a2415 0%, #17130d 58%, #221c10 100%) !important;
+  box-shadow: 0 14px 30px -22px rgba(248, 211, 111, 0.45) !important;
+}
+
+html.dark .gold-watch-icon {
+  border-color: rgba(248, 211, 111, 0.3) !important;
+  background: rgba(248, 211, 111, 0.1) !important;
+}
+
+html.dark .gold-watch-card .text-brand-ink,
+html.dark .gold-price-card .font-display {
+  color: #fff7d6 !important;
+}
+
+html.dark .gold-watch-card .text-brand-gold,
+html.dark .gold-price-card .text-brand-gold,
+html.dark .gold-watch-card .text-brand-blue,
+html.dark .gold-price-card .text-brand-blue {
+  color: #f8d36f !important;
+}

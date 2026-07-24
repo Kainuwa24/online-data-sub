@@ -71,10 +71,7 @@ export default function WatchPage() {
         </div>
 
         {gold && (
-          <div
-            className="rounded-[22px] p-5 mt-2 border"
-            style={{ background: "linear-gradient(150deg, #F3ECDA, white)", borderColor: "#F3ECDA" }}
-          >
+          <div className="gold-price-card rounded-[22px] p-5 mt-2">
             <div className="text-[11px] uppercase tracking-wide text-brand-gold font-body font-semibold">
               Gold · per gram (XAU)
             </div>
