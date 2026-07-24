@@ -4,6 +4,7 @@ import { Agent, fetch as undiciFetch } from "undici";
 const GOOGLE_AUTH = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO = "https://www.googleapis.com/oauth2/v3/userinfo";
+const GOOGLE_TOKENINFO = "https://oauth2.googleapis.com/tokeninfo";
 
 // WSL/dual-stack often hits IPv6 ETIMEDOUT to Google; force IPv4.
 const googleAgent = new Agent({
@@ -14,6 +15,10 @@ const googleAgent = new Agent({
 
 export function isGoogleAuthConfigured() {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+}
+
+export function isGoogleNativeAuthConfigured() {
+  return Boolean(process.env.GOOGLE_CLIENT_ID);
 }
 
 export function getAppUrl() {
@@ -100,6 +105,53 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleProfile> {
   return profile;
 }
 
+export async function verifyGoogleIdToken(idToken: string): Promise<GoogleProfile> {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  if (!clientId) throw new Error("Google native sign-in is not configured");
+
+  const tokenInfoRes = await undiciFetch(
+    `${GOOGLE_TOKENINFO}?${new URLSearchParams({ id_token: idToken })}`,
+    { dispatcher: googleAgent },
+  );
+  const tokenInfo = (await tokenInfoRes.json()) as {
+    aud?: string;
+    sub?: string;
+    email?: string;
+    email_verified?: boolean | string;
+    name?: string;
+    picture?: string;
+    iss?: string;
+    error?: string;
+    error_description?: string;
+  };
+
+  if (!tokenInfoRes.ok) {
+    throw new Error(
+      tokenInfo.error_description || tokenInfo.error || "Google ID token verification failed",
+    );
+  }
+  if (tokenInfo.aud !== clientId) {
+    throw new Error("Google ID token was not issued for this app");
+  }
+  if (tokenInfo.iss !== "accounts.google.com" && tokenInfo.iss !== "https://accounts.google.com") {
+    throw new Error("Google ID token issuer is invalid");
+  }
+  if (!tokenInfo.sub || !tokenInfo.email) {
+    throw new Error("Google ID token is missing profile details");
+  }
+  if (String(tokenInfo.email_verified) !== "true") {
+    throw new Error("Google account email is not verified");
+  }
+
+  return {
+    sub: tokenInfo.sub,
+    email: tokenInfo.email,
+    email_verified: true,
+    name: tokenInfo.name,
+    picture: tokenInfo.picture,
+  };
+}
+
 /** Stable placeholder referral code for Google-only users before phone is set. */
 export function googleReferralSeed(googleSub: string) {
   const hash = createHash("sha256").update(googleSub).digest("hex").slice(0, 6).toUpperCase();
@@ -121,4 +173,3 @@ export function isProfileComplete(user: {
 }) {
   return Boolean(user.phone && user.pinHash && hasValidKyc(user));
 }
-

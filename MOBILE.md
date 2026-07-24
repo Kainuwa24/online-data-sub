@@ -55,10 +55,21 @@ Then: **Run** on emulator or USB device.
 
 ### Google Sign-In in the app
 
-Add the Railway origin (and any Android deep-link origins if you add them later) to Google Cloud OAuth:
+The Android app uses native Google Sign-In first. Tapping Google opens the device Google account picker, then the app sends the returned ID token to `/api/auth/google/native` to create the normal app session.
 
-- Authorized JavaScript origins: `https://YOUR-APP.up.railway.app`
-- Redirect: `https://YOUR-APP.up.railway.app/api/auth/google/callback`
+Google Cloud setup:
+
+- Web OAuth client: set `GOOGLE_CLIENT_ID` to this client ID on Railway and when running `npm run cap:sync:prod`.
+- Web OAuth redirect for browser fallback: `https://YOUR-APP.up.railway.app/api/auth/google/callback`.
+- Android OAuth client: add package name `app.onlinedatasub.mobile` and the SHA-1/SHA-256 fingerprints for your debug and release signing keys.
+
+After changing any Google client ID or Railway URL, sync before building:
+
+```bash
+export CAPACITOR_SERVER_URL="https://YOUR-APP.up.railway.app"
+export GOOGLE_CLIENT_ID="YOUR-WEB-OAUTH-CLIENT-ID.apps.googleusercontent.com"
+npm run cap:sync:prod
+```
 
 ## npm scripts
 

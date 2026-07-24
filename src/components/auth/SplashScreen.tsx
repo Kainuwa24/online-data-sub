@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 const SPLASH_MS = 1900;
 
 /**
- * Brand splash (same idea as onlinedatasub): logo + tagline, then route on.
+ * Brand splash: logo + tagline, then route on.
  * nextPath is resolved on the server from the session cookie.
  */
 export function SplashScreen({ nextPath }: { nextPath: string }) {
@@ -25,7 +25,7 @@ export function SplashScreen({ nextPath }: { nextPath: string }) {
         <div className="splash-ring" />
         <div className="splash-ring" />
         <div className="splash-mark" aria-hidden>
-          <span>OD</span>
+          <img src="/app-logo.png" alt="" />
         </div>
       </div>
 
@@ -34,7 +34,7 @@ export function SplashScreen({ nextPath }: { nextPath: string }) {
         <span className="text-brand-red">Data</span>
         <span className="text-brand-ink">Sub</span>
       </div>
-      <p className="splash-tagline">Data · Airtime · Bills · Watch</p>
+      <p className="splash-tagline">Data / Airtime / Bills / Watch</p>
     </div>
   );
 }

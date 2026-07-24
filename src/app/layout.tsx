@@ -4,7 +4,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Online Data Sub",
-  description: "Data, airtime, bills — and gold & stocks, watch only.",
+  description: "Data, airtime, bills, and gold & stocks, watch only.",
+  icons: {
+    icon: "/app-logo.png",
+    apple: "/app-logo.png",
+  },
 };
 
 export const viewport: Viewport = {

@@ -13,6 +13,8 @@ const serverUrl = (
   process.env.NEXT_PUBLIC_APP_URL ||
   ""
 ).replace(/\/$/, "");
+const serverHost = serverUrl ? new URL(serverUrl).hostname : "";
+const googleServerClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "";
 
 const config: CapacitorConfig = {
   appId: "app.onlinedatasub.mobile",
@@ -24,16 +26,20 @@ const config: CapacitorConfig = {
         url: serverUrl,
         cleartext: serverUrl.startsWith("http://"),
         allowNavigation: [
-          serverUrl,
-          "https://*.up.railway.app",
-          "https://accounts.google.com",
-          "https://*.google.com",
-          "https://*.googleapis.com",
-          "https://api.flutterwave.com",
+          serverHost,
+          "*.up.railway.app",
+          "accounts.google.com",
+          "*.google.com",
+          "*.googleapis.com",
+          "*.gstatic.com",
+          "api.flutterwave.com",
         ],
       }
     : undefined,
   plugins: {
+    GoogleNativeAuth: {
+      serverClientId: googleServerClientId,
+    },
     SplashScreen: {
       launchShowDuration: 1500,
       launchAutoHide: true,

@@ -220,20 +220,23 @@
 
   /* Native-app auth chrome (phone width, flat, safe areas) */
   .auth-app {
-    min-height: 100dvh;
+    height: 100dvh;
     min-height: 100vh;
     background: #f7f8fa;
     display: flex;
     justify-content: center;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 
   .auth-app-inner {
     width: 100%;
     max-width: 28rem;
-    min-height: 100dvh;
+    height: 100dvh;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     padding:
       max(1rem, env(safe-area-inset-top))
       max(1.25rem, env(safe-area-inset-right))
@@ -254,26 +257,65 @@
     height: 2.5rem;
     width: 2.5rem;
     border-radius: 0.85rem;
-    background: linear-gradient(160deg, var(--brand-blue), var(--brand-blue-dark));
-    box-shadow: 0 8px 20px -10px rgba(44, 90, 160, 0.65);
+    background: #fff;
+    border: 1px solid rgba(232, 236, 242, 0.95);
+    box-shadow: 0 8px 20px -12px rgba(15, 23, 42, 0.2);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    overflow: hidden;
   }
 
-  .auth-app-mark span {
-    color: #fff;
-    font-size: 0.8rem;
-    font-weight: 800;
-    font-family: var(--font-sora), system-ui, sans-serif;
-    letter-spacing: -0.02em;
+  .auth-app-mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .auth-app-main {
     flex: 1;
+    min-height: 0;
     padding-top: 1.75rem;
     padding-bottom: 1.5rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .auth-app-main::-webkit-scrollbar {
+    display: none;
+  }
+
+  .auth-app-inner-compact .auth-app-main {
+    padding-top: 1rem;
+    padding-bottom: 0.9rem;
+  }
+
+  .auth-app-inner-compact .auth-app-content {
+    margin-top: 1.25rem;
+  }
+
+  .auth-app-inner-compact .divider-or {
+    margin: 0.9rem 0;
+  }
+
+  .auth-app-inner-compact .input-premium,
+  .auth-app-inner-compact .btn-primary,
+  .auth-app-inner-compact .btn-secondary {
+    min-height: 2.85rem;
+    padding-top: 0.78rem;
+    padding-bottom: 0.78rem;
+  }
+
+  .auth-app-inner-compact .mb-4 {
+    margin-bottom: 0.75rem;
+  }
+
+  .auth-app-inner-compact .mb-6 {
+    margin-bottom: 1rem;
   }
 
   .auth-app-footer {
@@ -347,20 +389,21 @@
     width: 4.25rem;
     height: 4.25rem;
     border-radius: 1.15rem;
-    background: linear-gradient(160deg, var(--brand-blue), var(--brand-blue-dark));
-    box-shadow: 0 14px 32px -14px rgba(44, 90, 160, 0.65);
+    background: #fff;
+    border: 1px solid rgba(232, 236, 242, 0.95);
+    box-shadow: 0 14px 32px -18px rgba(15, 23, 42, 0.28);
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
     animation: splash-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
   }
 
-  .splash-mark span {
-    color: #fff;
-    font-size: 1.15rem;
-    font-weight: 800;
-    font-family: var(--font-sora), system-ui, sans-serif;
-    letter-spacing: -0.02em;
+  .splash-mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .splash-title {

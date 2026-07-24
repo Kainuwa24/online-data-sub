@@ -66,6 +66,7 @@ function SignupForm() {
 
   return (
     <AuthShell
+      density="compact"
       eyebrow="Get started"
       title="Create account"
       subtitle="Google or email. Phone, KYC, and purchase PIN come next."
