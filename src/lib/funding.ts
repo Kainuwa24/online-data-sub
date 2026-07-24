@@ -22,7 +22,7 @@ import { nairaToKobo } from "@/lib/money";
 export type FundingProvider = "palmpay" | "flutterwave";
 
 export function normalizeFundingProvider(value: unknown): FundingProvider {
-  return value === "flutterwave" ? "flutterwave" : "palmpay";
+  return value === "palmpay" ? "palmpay" : "flutterwave";
 }
 
 function syntheticEmail(phone: string | null | undefined, userId: string) {
@@ -116,7 +116,7 @@ export function getFundingConfig() {
 
 export async function getFundingAccount(
   userId: string,
-  provider: FundingProvider = "palmpay",
+  provider: FundingProvider = "flutterwave",
 ) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   const existing = await prisma.virtualAccount.findUnique({

@@ -74,7 +74,7 @@ export default function WalletPage() {
   const [kycReady, setKycReady] = useState(wallet?.kycReady ?? false);
   const [configured, setConfigured] = useState(wallet?.configured ?? false);
   const [fundingProvider, setFundingProvider] = useState<FundingProviderId>(
-    wallet?.fundingProvider ?? "palmpay",
+    wallet?.fundingProvider ?? "flutterwave",
   );
   const [providers, setProviders] = useState(wallet?.providers);
   const [loading, setLoading] = useState(!wallet);
@@ -165,11 +165,11 @@ export default function WalletPage() {
       applySnapshotLocal(wallet, localSetters);
       setLoading(false);
       // Still revalidate quietly so we don't show a stale cached balance after funding
-      void loadForProvider(wallet.fundingProvider ?? "palmpay", { quiet: true });
+      void loadForProvider(wallet.fundingProvider ?? "flutterwave", { quiet: true });
       return;
     }
 
-    void loadForProvider("palmpay");
+    void loadForProvider("flutterwave");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -292,7 +292,7 @@ export default function WalletPage() {
         <div className="section-label mt-7 mb-3">Fund via bank transfer</div>
         <div className="flex items-center justify-between gap-2 -mt-1 mb-3">
           <div className="inline-flex rounded-full border border-gray-200 dark:border-gray-700 p-0.5 bg-white/70 dark:bg-gray-900/40">
-            {(["palmpay", "flutterwave"] as FundingProviderId[]).map((id) => {
+            {(["flutterwave", "palmpay"] as FundingProviderId[]).map((id) => {
               const enabled = id === "palmpay" ? palmpayEnabled : flutterwaveEnabled;
               const active = fundingProvider === id;
               return (

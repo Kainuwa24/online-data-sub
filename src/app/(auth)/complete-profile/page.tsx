@@ -22,6 +22,7 @@ export default function CompleteProfilePage() {
   const [pin, setPin] = useState("");
   const [bvn, setBvn] = useState("");
   const [nin, setNin] = useState("");
+  const [kycMethod, setKycMethod] = useState<"nin" | "bvn">("nin");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
@@ -53,8 +54,8 @@ export default function CompleteProfilePage() {
   }
 
   function detailsValid() {
-    const kycOk =
-      bvn.replace(/\D/g, "").length === 11 || nin.replace(/\D/g, "").length === 11;
+    const kycValue = kycMethod === "nin" ? nin : bvn;
+    const kycOk = kycValue.replace(/\D/g, "").length === 11;
     return isValidNgPhone(phone) && kycOk && name.trim().length >= 2;
   }
 
@@ -69,10 +70,10 @@ export default function CompleteProfilePage() {
       setError("Enter your full name");
       return;
     }
-    const kycOk =
-      bvn.replace(/\D/g, "").length === 11 || nin.replace(/\D/g, "").length === 11;
+    const kycValue = kycMethod === "nin" ? nin : bvn;
+    const kycOk = kycValue.replace(/\D/g, "").length === 11;
     if (!kycOk) {
-      setError("Enter a valid BVN or NIN (11 digits)");
+      setError(`Enter a valid ${kycMethod.toUpperCase()} (11 digits)`);
       return;
     }
     setStep("pin");
@@ -94,8 +95,8 @@ export default function CompleteProfilePage() {
         name: name || undefined,
         phone,
         pin: pinToSend,
-        bvn: bvn || undefined,
-        nin: nin || undefined,
+        bvn: kycMethod === "bvn" ? bvn : undefined,
+        nin: kycMethod === "nin" ? nin : undefined,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -131,21 +132,41 @@ export default function CompleteProfilePage() {
         <div className="text-xs font-semibold text-brand-muted font-body mt-1 mb-2">
           Identity (required for wallet funding)
         </div>
-        <TextField
-          label="BVN (11 digits)"
-          placeholder="Enter BVN"
-          value={bvn}
-          onChange={setBvn}
-          type="tel"
-        />
-        <div className="text-center text-[11px] text-brand-muted font-body -mt-1 mb-2">or</div>
-        <TextField
-          label="NIN (11 digits)"
-          placeholder="Enter NIN if you prefer"
-          value={nin}
-          onChange={setNin}
-          type="tel"
-        />
+        <div className="mb-4">
+          <label className="mb-1.5 block text-[11px] font-semibold tracking-wide text-brand-muted font-body">
+            KYC method
+          </label>
+          <select
+            value={kycMethod}
+            onChange={(e) => {
+              const next = e.target.value as "nin" | "bvn";
+              setKycMethod(next);
+              setError("");
+            }}
+            className="input-premium"
+          >
+            <option value="nin">NIN</option>
+            <option value="bvn">BVN</option>
+          </select>
+        </div>
+
+        {kycMethod === "nin" ? (
+          <TextField
+            label="NIN (11 digits)"
+            placeholder="Enter NIN"
+            value={nin}
+            onChange={setNin}
+            type="tel"
+          />
+        ) : (
+          <TextField
+            label="BVN (11 digits)"
+            placeholder="Enter BVN"
+            value={bvn}
+            onChange={setBvn}
+            type="tel"
+          />
+        )}
 
         {error && (
           <div className="text-center text-brand-red text-xs font-body mt-1 mb-3 font-medium">
