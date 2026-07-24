@@ -23,6 +23,12 @@ import {
 } from "@/lib/checkout";
 import { formatPhoneDisplay } from "@/lib/phone";
 import { useAppCache } from "@/components/app/AppCacheProvider";
+import {
+  authenticateBiometric,
+  BIOMETRIC_TRANSACTION_KEY,
+  getBiometricAvailability,
+  readBiometricSetting,
+} from "@/lib/native-biometric";
 
 type Phase = "review" | "processing" | "success" | "failed";
 
@@ -59,6 +65,22 @@ export default function ConfirmPurchasePage() {
   const [pinError, setPinError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reference, setReference] = useState<string | null>(null);
+  const [biometricTransactionEnabled, setBiometricTransactionEnabled] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadBiometricPreference() {
+      const availability = await getBiometricAvailability();
+      if (cancelled) return;
+      setBiometricTransactionEnabled(
+        availability.available && readBiometricSetting(BIOMETRIC_TRANSACTION_KEY, false),
+      );
+    }
+    void loadBiometricPreference();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const p = loadCheckout();
@@ -82,8 +104,21 @@ export default function ConfirmPurchasePage() {
       if (!payload || phase === "processing") return;
       setPinError(null);
       setError(null);
-      setPhase("processing");
       setPin(fullPin);
+
+      if (biometricTransactionEnabled) {
+        const verified = await authenticateBiometric({
+          title: "Verify transaction",
+          subtitle: "Confirm this purchase before payment is submitted",
+        });
+        if (!verified) {
+          setPin("");
+          setPinError("Biometric verification was cancelled");
+          return;
+        }
+      }
+
+      setPhase("processing");
 
       try {
         let res: Response;
@@ -157,7 +192,7 @@ export default function ConfirmPurchasePage() {
         setPin("");
       }
     },
-    [payload, phase, toastSuccess],
+    [payload, phase, toastSuccess, biometricTransactionEnabled],
   );
 
   function press(d: string) {
@@ -309,6 +344,11 @@ export default function ConfirmPurchasePage() {
             Enter PIN to pay
           </div>
           <PinDots length={4} filled={pin.length} />
+          {biometricTransactionEnabled && (
+            <div className="text-center text-[11px] text-brand-muted font-body mb-3 -mt-1">
+              Biometric verification is on for this transaction.
+            </div>
+          )}
           <NumPad
             onPress={press}
             onBackspace={() => {

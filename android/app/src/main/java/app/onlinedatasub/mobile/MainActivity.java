@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(GoogleNativeAuthPlugin.class);
+        registerPlugin(BiometricAuthPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

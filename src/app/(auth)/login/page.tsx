@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Fingerprint } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { GoogleButton } from "@/components/auth/GoogleButton";
 import { AuthShell } from "@/components/auth/AuthShell";
+import {
+  authenticateBiometric,
+  BIOMETRIC_UNLOCK_KEY,
+  getBiometricAvailability,
+  readBiometricSetting,
+} from "@/lib/native-biometric";
 
 function LoginForm() {
   const router = useRouter();
@@ -19,8 +25,39 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(oauthError);
   const [loading, setLoading] = useState(false);
+  const [biometricLoginAvailable, setBiometricLoginAvailable] = useState(false);
+  const [biometricBusy, setBiometricBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadBiometric() {
+      const availability = await getBiometricAvailability();
+      if (cancelled) return;
+      setBiometricLoginAvailable(
+        availability.available && readBiometricSetting(BIOMETRIC_UNLOCK_KEY, false),
+      );
+    }
+    void loadBiometric();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const canSubmit = email.includes("@") && password.length >= 1 && !loading;
+
+  async function biometricUnlock() {
+    if (!biometricLoginAvailable || biometricBusy) return;
+    setBiometricBusy(true);
+    setError("");
+    const verified = await authenticateBiometric({
+      title: "Unlock Online Data Sub",
+      subtitle: "Use biometrics or your device lock to continue",
+    });
+    setBiometricBusy(false);
+    if (!verified) return;
+    router.push("/home");
+    router.refresh();
+  }
 
   async function submit(e?: React.FormEvent) {
     e?.preventDefault();
@@ -59,6 +96,17 @@ function LoginForm() {
         </>
       }
     >
+      {biometricLoginAvailable && (
+        <div className="mb-3">
+          <Button type="button" variant="secondary" onClick={() => void biometricUnlock()} disabled={biometricBusy}>
+            <span className="inline-flex items-center justify-center gap-2">
+              <Fingerprint size={18} />
+              {biometricBusy ? "Verifying..." : "Unlock with biometrics"}
+            </span>
+          </Button>
+        </div>
+      )}
+
       <GoogleButton label="Continue with Google" />
 
       <div className="divider-or">
