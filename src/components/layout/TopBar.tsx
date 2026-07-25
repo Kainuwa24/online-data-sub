@@ -40,7 +40,7 @@ export function TopBar({
   }, [setUnreadCount, unreadCount]);
 
   return (
-    <div className="flex items-center justify-between px-5 pt-6 pb-3">
+    <div className="screen-header-pad flex items-center justify-between px-5 pb-3">
       <div className="min-w-0">
         <div className="text-[11px] uppercase tracking-[0.12em] text-brand-muted font-body font-medium">
           {subtitle}

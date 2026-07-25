@@ -84,6 +84,18 @@
     margin-right: auto;
     min-height: 100vh;
     position: relative;
+    /* Keep content clear of the phone status bar / notch */
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Shared header top spacing: design padding + safe area when not inside .app-shell */
+  .screen-header-pad {
+    padding-top: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 0.75rem));
+  }
+
+  .app-shell .screen-header-pad {
+    /* Safe area already applied on .app-shell — only keep design padding */
+    padding-top: 1.5rem;
   }
 
   .pull-refresh-root {

@@ -1,7 +1,7 @@
 export default function Loading() {
   return (
-    <div className="app-shell pb-28 pointer-events-none">
-      <div className="px-5 pt-6 pb-3 flex items-center justify-between">
+    <div className="pointer-events-none">
+      <div className="screen-header-pad px-5 pb-3 flex items-center justify-between">
         <div className="min-w-0">
           <div className="h-3 w-16 rounded bg-slate-200/80 animate-pulse" />
           <div className="mt-2 h-6 w-28 rounded bg-slate-200/90 animate-pulse" />

@@ -27,7 +27,7 @@ export function ScreenHeader({
   }
 
   return (
-    <div className="flex items-center gap-3 px-5 pt-6 pb-3">
+    <div className="screen-header-pad flex items-center gap-3 px-5 pb-3">
       <button
         type="button"
         onClick={handleBack}

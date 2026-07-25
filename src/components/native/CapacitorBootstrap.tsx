@@ -21,9 +21,14 @@ export function CapacitorBootstrap() {
           import("@capacitor/app"),
         ]);
 
+        // Keep the WebView below the system status bar so headers are not
+        // drawn under clock / battery icons. Safe-area CSS covers iOS / edge cases.
+        await StatusBar.setOverlaysWebView({ overlay: false }).catch(() => undefined);
         await StatusBar.setStyle({ style: Style.Dark }).catch(() => undefined);
         await StatusBar.setBackgroundColor({ color: "#F7F8FA" }).catch(() => undefined);
         await SplashScreen.hide().catch(() => undefined);
+
+        document.documentElement.classList.add("capacitor-native");
 
         // Android back button: leave the WebView app when at root-ish routes
         const back = await App.addListener("backButton", ({ canGoBack }) => {
