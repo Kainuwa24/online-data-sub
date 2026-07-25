@@ -503,6 +503,7 @@ export function AppCacheProvider({ children }: { children: React.ReactNode }) {
     try {
       window.localStorage.removeItem(PERSIST_KEY);
       window.localStorage.removeItem("ods-app-cache-v1");
+      window.sessionStorage.removeItem("ods-biometric-session-ok");
     } catch {
       // ignore
     }

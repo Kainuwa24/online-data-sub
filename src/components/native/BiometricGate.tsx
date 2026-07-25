@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Fingerprint, Loader2, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {
   authenticateBiometric,
   BIOMETRIC_UNLOCK_KEY,
+  biometricUnavailableHint,
+  clearBiometricSession,
   getBiometricAvailability,
+  isBiometricSessionUnlocked,
+  markBiometricSessionUnlocked,
   readBiometricSetting,
   writeBiometricSetting,
 } from "@/lib/native-biometric";
@@ -16,39 +20,110 @@ type GateState = "checking" | "open" | "locked" | "unavailable";
 export function BiometricGate({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GateState>("checking");
   const [busy, setBusy] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const promptOnLock = useRef(true);
 
-  async function unlock() {
+  const unlock = useCallback(async () => {
     setBusy(true);
-    const verified = await authenticateBiometric({
+    setError(null);
+    const result = await authenticateBiometric({
       title: "Unlock Online Data Sub",
-      subtitle: "Use biometrics to continue",
+      subtitle: "Use fingerprint or face to continue",
     });
     setBusy(false);
-    if (verified) setState("open");
-  }
+    if (result.verified) {
+      markBiometricSessionUnlocked();
+      setState("open");
+      return true;
+    }
+    if (!result.cancelled && result.message) {
+      setError(result.message);
+    }
+    return false;
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    async function check() {
+    let removeListener: (() => void) | undefined;
+
+    async function boot() {
       const enabled = readBiometricSetting(BIOMETRIC_UNLOCK_KEY, false);
       if (!enabled) {
-        setState("open");
+        if (!cancelled) setState("open");
         return;
       }
+
+      if (isBiometricSessionUnlocked()) {
+        if (!cancelled) setState("open");
+        return;
+      }
+
       const availability = await getBiometricAvailability();
       if (cancelled) return;
+
       if (!availability.available) {
+        setHint(biometricUnavailableHint(availability.statusLabel));
         setState("unavailable");
         return;
       }
+
       setState("locked");
-      void unlock();
+      if (promptOnLock.current) {
+        promptOnLock.current = false;
+        void unlock();
+      }
     }
-    void check();
+
+    void boot();
+
+    void (async () => {
+      try {
+        const { Capacitor } = await import("@capacitor/core");
+        if (!Capacitor.isNativePlatform()) return;
+        const { App } = await import("@capacitor/app");
+        const handle = await App.addListener("appStateChange", ({ isActive }) => {
+          if (!readBiometricSetting(BIOMETRIC_UNLOCK_KEY, false)) return;
+
+          if (!isActive) {
+            // Leaving the app — require biometrics again on return
+            clearBiometricSession();
+            return;
+          }
+
+          // Returning to the app
+          if (isBiometricSessionUnlocked()) return;
+          setState((current) => {
+            if (current === "unavailable" || current === "checking") return current;
+            return "locked";
+          });
+          promptOnLock.current = true;
+          void (async () => {
+            const availability = await getBiometricAvailability();
+            if (!availability.available) {
+              setHint(biometricUnavailableHint(availability.statusLabel));
+              setState("unavailable");
+              return;
+            }
+            if (promptOnLock.current) {
+              promptOnLock.current = false;
+              void unlock();
+            }
+          })();
+        });
+        removeListener = () => {
+          void handle.remove();
+        };
+      } catch {
+        // Browser
+      }
+    })();
+
     return () => {
       cancelled = true;
+      removeListener?.();
     };
-  }, []);
+  }, [unlock]);
 
   if (state === "open") return <>{children}</>;
 
@@ -61,7 +136,7 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen px-6 flex items-center justify-center bg-brand-bg">
+    <div className="min-h-screen px-6 flex items-center justify-center bg-[#F7F8FA]">
       <div className="w-full max-w-sm text-center auth-panel">
         <div className="mx-auto h-14 w-14 rounded-full bg-brand-blueSoft flex items-center justify-center mb-4">
           {state === "unavailable" ? (
@@ -73,23 +148,28 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
         <h1 className="text-xl font-display font-extrabold text-brand-ink">
           {state === "unavailable" ? "Device lock unavailable" : "Unlock app"}
         </h1>
-        <p className="text-sm text-brand-muted font-body mt-2 mb-6 leading-relaxed">
+        <p className="text-sm text-brand-muted font-body mt-2 mb-4 leading-relaxed">
           {state === "unavailable"
-            ? "Turn off biometric unlock in Security & PIN after signing in, or set up fingerprint/face unlock on this phone."
+            ? hint ||
+              "Turn off biometric unlock in Security & PIN, or set up fingerprint/face unlock on this phone."
             : "Verify with your fingerprint or face to continue."}
         </p>
+        {error ? (
+          <p className="text-xs text-brand-red font-body mb-4">{error}</p>
+        ) : null}
         {state === "unavailable" ? (
           <Button
             onClick={() => {
               writeBiometricSetting(BIOMETRIC_UNLOCK_KEY, false);
+              clearBiometricSession();
               setState("open");
             }}
           >
-            Continue
+            Continue without biometrics
           </Button>
         ) : (
           <Button onClick={() => void unlock()} disabled={busy}>
-            {busy ? "Verifying..." : "Unlock"}
+            {busy ? "Verifying..." : "Unlock with fingerprint or face"}
           </Button>
         )}
       </div>

@@ -69,6 +69,12 @@ export default function ProfilePage() {
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
+    try {
+      const { clearBiometricSession } = await import("@/lib/native-biometric");
+      clearBiometricSession();
+    } catch {
+      // ignore
+    }
     reset();
     router.push("/login");
   }

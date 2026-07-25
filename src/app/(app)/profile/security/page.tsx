@@ -10,7 +10,11 @@ import {
   authenticateBiometric,
   BIOMETRIC_TRANSACTION_KEY,
   BIOMETRIC_UNLOCK_KEY,
+  biometricUnavailableHint,
+  clearBiometricSession,
   getBiometricAvailability,
+  isNativeBiometricPlatform,
+  markBiometricSessionUnlocked,
   readBiometricSetting,
   writeBiometricSetting,
 } from "@/lib/native-biometric";
@@ -30,6 +34,8 @@ export default function SecurityPinPage() {
   const [biometricUnlock, setBiometricUnlock] = useState(false);
   const [biometricTransaction, setBiometricTransaction] = useState(false);
   const [biometricBusy, setBiometricBusy] = useState(false);
+  const [biometricHint, setBiometricHint] = useState<string | null>(null);
+  const [biometricError, setBiometricError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +43,11 @@ export default function SecurityPinPage() {
       const availability = await getBiometricAvailability();
       if (cancelled) return;
       setBiometricAvailable(availability.available);
+      setBiometricHint(
+        availability.available
+          ? null
+          : biometricUnavailableHint(availability.statusLabel),
+      );
       setBiometricUnlock(readBiometricSetting(BIOMETRIC_UNLOCK_KEY, false));
       setBiometricTransaction(readBiometricSetting(BIOMETRIC_TRANSACTION_KEY, false));
     }
@@ -107,14 +118,28 @@ export default function SecurityPinPage() {
   async function toggleBiometric(key: string, enabled: boolean, setter: (value: boolean) => void) {
     if (!biometricAvailable || biometricBusy) return;
     setBiometricBusy(true);
-    const verified = await authenticateBiometric({
+    setBiometricError(null);
+    const result = await authenticateBiometric({
       title: enabled ? "Enable biometrics" : "Turn off biometrics",
-      subtitle: "Verify with biometrics to update this setting",
+      subtitle: "Use fingerprint or face to update this setting",
     });
     setBiometricBusy(false);
-    if (!verified) return;
+    if (!result.verified) {
+      if (!result.cancelled) {
+        setBiometricError(result.message || "Could not verify biometrics");
+      }
+      return;
+    }
     writeBiometricSetting(key, enabled);
     setter(enabled);
+    if (key === BIOMETRIC_UNLOCK_KEY) {
+      if (enabled) {
+        // Just verified — treat this session as unlocked
+        markBiometricSessionUnlocked();
+      } else {
+        clearBiometricSession();
+      }
+    }
   }
 
   function handleHeaderBack() {
@@ -148,6 +173,9 @@ export default function SecurityPinPage() {
               <div className="text-sm font-display font-bold text-brand-ink">Biometric security</div>
               <p className="text-xs text-brand-muted font-body mt-1 leading-relaxed">
                 Use fingerprint or face unlock where your phone supports it.
+                {isNativeBiometricPlatform() && biometricAvailable
+                  ? " Ready on this device."
+                  : ""}
               </p>
             </div>
           </div>
@@ -156,35 +184,54 @@ export default function SecurityPinPage() {
             <label className={`flex items-center justify-between gap-3 ${!biometricAvailable ? "opacity-60" : ""}`}>
               <span>
                 <span className="block text-sm font-semibold text-brand-ink font-body">Unlock app</span>
-                <span className="block text-xs text-brand-muted font-body mt-0.5">Ask for biometrics when opening the logged-in app.</span>
+                <span className="block text-xs text-brand-muted font-body mt-0.5">
+                  Ask for fingerprint or face when opening the app.
+                </span>
               </span>
               <input
                 type="checkbox"
                 checked={biometricUnlock}
                 disabled={!biometricAvailable || biometricBusy}
-                onChange={(e) => void toggleBiometric(BIOMETRIC_UNLOCK_KEY, e.target.checked, setBiometricUnlock)}
+                onChange={(e) =>
+                  void toggleBiometric(BIOMETRIC_UNLOCK_KEY, e.target.checked, setBiometricUnlock)
+                }
                 className="h-5 w-5 accent-brand-blue"
               />
             </label>
 
             <label className={`flex items-center justify-between gap-3 ${!biometricAvailable ? "opacity-60" : ""}`}>
               <span>
-                <span className="block text-sm font-semibold text-brand-ink font-body">Verify transactions</span>
-                <span className="block text-xs text-brand-muted font-body mt-0.5">Require biometrics before a purchase is submitted.</span>
+                <span className="block text-sm font-semibold text-brand-ink font-body">
+                  Verify transactions
+                </span>
+                <span className="block text-xs text-brand-muted font-body mt-0.5">
+                  Require biometrics before a purchase is submitted.
+                </span>
               </span>
               <input
                 type="checkbox"
                 checked={biometricTransaction}
                 disabled={!biometricAvailable || biometricBusy}
-                onChange={(e) => void toggleBiometric(BIOMETRIC_TRANSACTION_KEY, e.target.checked, setBiometricTransaction)}
+                onChange={(e) =>
+                  void toggleBiometric(
+                    BIOMETRIC_TRANSACTION_KEY,
+                    e.target.checked,
+                    setBiometricTransaction,
+                  )
+                }
                 className="h-5 w-5 accent-brand-blue"
               />
             </label>
           </div>
 
+          {biometricError && (
+            <div className="mt-4 text-xs text-brand-red font-body">{biometricError}</div>
+          )}
+
           {!biometricAvailable && (
-            <div className="mt-4 text-xs text-brand-muted font-body">
-              Biometric security is available only inside the Android app on a device with fingerprint or face unlock set up.
+            <div className="mt-4 text-xs text-brand-muted font-body leading-relaxed">
+              {biometricHint ||
+                "Biometric security needs the Android app on a device with fingerprint or face unlock set up."}
             </div>
           )}
         </div>

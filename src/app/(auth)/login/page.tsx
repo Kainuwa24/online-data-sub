@@ -12,6 +12,7 @@ import {
   authenticateBiometric,
   BIOMETRIC_UNLOCK_KEY,
   getBiometricAvailability,
+  markBiometricSessionUnlocked,
   readBiometricSetting,
 } from "@/lib/native-biometric";
 
@@ -49,14 +50,28 @@ function LoginForm() {
     if (!biometricLoginAvailable || biometricBusy) return;
     setBiometricBusy(true);
     setError("");
-    const verified = await authenticateBiometric({
-      title: "Unlock Online Data Sub",
-      subtitle: "Use biometrics to continue",
-    });
-    setBiometricBusy(false);
-    if (!verified) return;
-    router.push("/home");
-    router.refresh();
+    try {
+      // Ensure we still have a server session before treating biometrics as login
+      const sessionRes = await fetch("/api/profile", { cache: "no-store" });
+      if (!sessionRes.ok) {
+        setError("Session expired. Sign in with email or Google first, then enable biometrics.");
+        return;
+      }
+
+      const result = await authenticateBiometric({
+        title: "Unlock Online Data Sub",
+        subtitle: "Use fingerprint or face to continue",
+      });
+      if (!result.verified) {
+        if (!result.cancelled && result.message) setError(result.message);
+        return;
+      }
+      markBiometricSessionUnlocked();
+      router.push("/home");
+      router.refresh();
+    } finally {
+      setBiometricBusy(false);
+    }
   }
 
   async function submit(e?: React.FormEvent) {
@@ -101,7 +116,7 @@ function LoginForm() {
           <Button type="button" variant="secondary" onClick={() => void biometricUnlock()} disabled={biometricBusy}>
             <span className="inline-flex items-center justify-center gap-2">
               <Fingerprint size={18} />
-              {biometricBusy ? "Verifying..." : "Unlock with biometrics"}
+              {biometricBusy ? "Verifying..." : "Unlock with fingerprint or face"}
             </span>
           </Button>
         </div>

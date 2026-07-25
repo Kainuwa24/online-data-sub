@@ -107,13 +107,17 @@ export default function ConfirmPurchasePage() {
       setPin(fullPin);
 
       if (biometricTransactionEnabled) {
-        const verified = await authenticateBiometric({
+        const bio = await authenticateBiometric({
           title: "Verify transaction",
-          subtitle: "Confirm this purchase before payment is submitted",
+          subtitle: "Use fingerprint or face to confirm this purchase",
         });
-        if (!verified) {
+        if (!bio.verified) {
           setPin("");
-          setPinError("Biometric verification was cancelled");
+          setPinError(
+            bio.cancelled
+              ? "Biometric verification was cancelled"
+              : bio.message || "Biometric verification failed",
+          );
           return;
         }
       }
