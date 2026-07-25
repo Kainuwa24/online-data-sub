@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/lib/session";
 import { isProfileComplete } from "@/lib/google-oauth";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { BiometricGate } from "@/components/native/BiometricGate";
-import { PullToRefresh } from "@/components/native/PullToRefresh";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -12,10 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <BiometricGate>
-      <PullToRefresh>
-        <div className="app-shell pb-28">{children}</div>
-      </PullToRefresh>
-      {/* Outside pull-to-refresh so transform does not break position:fixed */}
+      <div className="app-shell pb-28">{children}</div>
       <BottomNav />
     </BiometricGate>
   );
