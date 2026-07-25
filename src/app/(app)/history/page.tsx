@@ -10,6 +10,7 @@ import {
   type HistoryFilter,
   type WalletTransaction,
 } from "@/components/app/AppCacheProvider";
+import { ListRowSkeleton } from "@/components/ui/ListSkeleton";
 
 function naira(kobo: number) {
   return `₦${(kobo / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -45,11 +46,25 @@ export default function HistoryPage() {
         setTxns(cached);
         setLoading(false);
         setError(null);
+        // Quiet revalidate so list stays visible
+        void (async () => {
+          try {
+            const params = new URLSearchParams({ limit: "100" });
+            if (f !== "ALL") params.set("type", f);
+            const res = await fetch(`/api/wallet/transactions?${params}`);
+            const data = await res.json();
+            if (!res.ok) return;
+            setTxns(data.transactions || []);
+            setHistory(f, data.transactions || []);
+          } catch {
+            // keep cached
+          }
+        })();
         return;
       }
       if (force) {
         setRefreshing(true);
-      } else {
+      } else if (!cached) {
         setLoading(true);
       }
       setError(null);
@@ -63,7 +78,7 @@ export default function HistoryPage() {
         setHistory(f, data.transactions || []);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load history");
-        setTxns([]);
+        if (!cached) setTxns([]);
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -78,6 +93,11 @@ export default function HistoryPage() {
 
   function setFilterAndLoad(f: HistoryFilter) {
     setFilter(f);
+    const cached = history[f];
+    if (cached) {
+      setTxns(cached);
+      setLoading(false);
+    }
     void load(f);
   }
 
@@ -170,10 +190,8 @@ export default function HistoryPage() {
           <div className="text-brand-red text-xs font-body font-medium mb-3">{error}</div>
         )}
 
-        {loading ? (
-          <div className="text-brand-muted text-sm font-body py-8 text-center">
-            Loading transactions…
-          </div>
+        {loading && txns.length === 0 ? (
+          <ListRowSkeleton rows={6} />
         ) : filtered.length === 0 ? (
           <div className="card py-10 px-4 text-center text-sm text-brand-muted font-body">
             {txns.length === 0

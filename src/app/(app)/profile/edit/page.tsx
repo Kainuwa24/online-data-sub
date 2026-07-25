@@ -30,8 +30,8 @@ export default function EditProfilePage() {
       setBvnMasked(profile.bvnMasked || null);
       setNinMasked(profile.ninMasked || null);
       setLoading(false);
-      return;
     }
+    // Always revalidate (quietly if we already have a shell)
     fetch("/api/profile")
       .then((r) => r.json())
       .then((d) => {
@@ -40,8 +40,16 @@ export default function EditProfilePage() {
         setEmail(d.email || "");
         setBvnMasked(d.bvnMasked || null);
         setNinMasked(d.ninMasked || null);
+        setProfile({
+          name: d.name || "",
+          phone: d.phone || "",
+          email: d.email || null,
+          bvnMasked: d.bvnMasked || null,
+          ninMasked: d.ninMasked || null,
+        });
       })
       .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function save() {
@@ -101,13 +109,10 @@ export default function EditProfilePage() {
           Phone is used for account recovery and cannot be changed here.
         </p>
 
-        {loading ? (
-          <div className="text-sm text-brand-muted font-body py-8">Loading…</div>
-        ) : (
-          <div className="auth-panel !p-5">
+        <div className={`auth-panel !p-5 ${loading ? "opacity-80" : ""}`}>
             <TextField
               label="Full name"
-              placeholder="Your name"
+              placeholder={loading ? "Loading…" : "Your name"}
               value={name}
               onChange={setName}
             />
@@ -160,11 +165,10 @@ export default function EditProfilePage() {
               </div>
             )}
 
-            <Button onClick={save} disabled={saving || name.trim().length < 2}>
+            <Button onClick={save} disabled={saving || loading || name.trim().length < 2}>
               {saving ? "Saving…" : "Save changes"}
             </Button>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

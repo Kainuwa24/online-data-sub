@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 
-const PERSIST_KEY = "ods-app-cache-v1";
+const PERSIST_KEY = "ods-app-cache-v2";
 
 export type HistoryFilter = "ALL" | "CREDIT" | "DEBIT";
 
@@ -121,17 +121,33 @@ type AppCacheState = {
 type PersistedShell = {
   profile?: ProfileSnapshot;
   wallet?: WalletSnapshot;
+  notifications?: NotificationSnapshot[];
+  unreadCount?: number;
+  billers?: BillersSnapshot;
+  watch?: WatchSnapshot;
+  referral?: ReferralSnapshot;
+  /** Full history list (ALL filter) for instant History/Home return visits */
+  historyAll?: WalletTransaction[];
 };
 
 function readPersistedShell(): PersistedShell {
   if (typeof window === "undefined") return {};
   try {
-    const raw = window.localStorage.getItem(PERSIST_KEY);
+    // Prefer v2; fall back to v1 (profile + wallet only)
+    const raw =
+      window.localStorage.getItem(PERSIST_KEY) ||
+      window.localStorage.getItem("ods-app-cache-v1");
     if (!raw) return {};
     const parsed = JSON.parse(raw) as PersistedShell;
     return {
       profile: parsed?.profile,
       wallet: parsed?.wallet,
+      notifications: parsed?.notifications,
+      unreadCount: parsed?.unreadCount,
+      billers: parsed?.billers,
+      watch: parsed?.watch,
+      referral: parsed?.referral,
+      historyAll: parsed?.historyAll,
     };
   } catch {
     return {};
@@ -141,7 +157,15 @@ function readPersistedShell(): PersistedShell {
 function writePersistedShell(shell: PersistedShell) {
   if (typeof window === "undefined") return;
   try {
-    if (!shell.profile && !shell.wallet) {
+    const empty =
+      !shell.profile &&
+      !shell.wallet &&
+      !shell.notifications &&
+      !shell.billers &&
+      !shell.watch &&
+      !shell.referral &&
+      !shell.historyAll;
+    if (empty) {
       window.localStorage.removeItem(PERSIST_KEY);
       return;
     }
@@ -155,6 +179,12 @@ function persistFromState(state: AppCacheState) {
   writePersistedShell({
     profile: state.profile?.data,
     wallet: state.wallet?.data,
+    notifications: state.notifications?.data,
+    unreadCount: state.unreadCount?.data,
+    billers: state.billers?.data,
+    watch: state.watch?.data,
+    referral: state.referral?.data,
+    historyAll: state.history.ALL?.data,
   });
 }
 
@@ -199,18 +229,50 @@ const AppCacheContext = createContext<AppCacheContextValue | null>(null);
 export function AppCacheProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppCacheState>({ history: {} });
 
-  // Restore last shell (name + balance) so home feels instant on return visits.
+  // Restore last snapshots so browse screens feel instant on return visits.
   useEffect(() => {
-    const persisted = readPersistedShell();
-    if (!persisted.profile && !persisted.wallet) return;
+    const p = readPersistedShell();
+    if (
+      !p.profile &&
+      !p.wallet &&
+      !p.notifications &&
+      !p.billers &&
+      !p.watch &&
+      !p.referral &&
+      !p.historyAll
+    ) {
+      return;
+    }
     setState((current) => ({
       ...current,
-      profile: persisted.profile
-        ? current.profile ?? { data: persisted.profile, fetchedAt: 0 }
+      profile: p.profile
+        ? current.profile ?? { data: p.profile, fetchedAt: 0 }
         : current.profile,
-      wallet: persisted.wallet
-        ? current.wallet ?? { data: persisted.wallet, fetchedAt: 0 }
+      wallet: p.wallet
+        ? current.wallet ?? { data: p.wallet, fetchedAt: 0 }
         : current.wallet,
+      notifications: p.notifications
+        ? current.notifications ?? { data: p.notifications, fetchedAt: 0 }
+        : current.notifications,
+      unreadCount:
+        typeof p.unreadCount === "number"
+          ? current.unreadCount ?? { data: p.unreadCount, fetchedAt: 0 }
+          : current.unreadCount,
+      billers: p.billers
+        ? current.billers ?? { data: p.billers, fetchedAt: 0 }
+        : current.billers,
+      watch: p.watch
+        ? current.watch ?? { data: p.watch, fetchedAt: 0 }
+        : current.watch,
+      referral: p.referral
+        ? current.referral ?? { data: p.referral, fetchedAt: 0 }
+        : current.referral,
+      history: p.historyAll
+        ? {
+            ...current.history,
+            ALL: current.history.ALL ?? { data: p.historyAll, fetchedAt: 0 },
+          }
+        : current.history,
     }));
   }, []);
 
@@ -265,105 +327,140 @@ export function AppCacheProvider({ children }: { children: React.ReactNode }) {
   );
 
   const setNotifications = useCallback((notifications: NotificationSnapshot[]) => {
-    setState((current) => ({
-      ...current,
-      notifications: { data: notifications, fetchedAt: Date.now() },
-    }));
+    setState((current) => {
+      const next = {
+        ...current,
+        notifications: { data: notifications, fetchedAt: Date.now() },
+      };
+      persistFromState(next);
+      return next;
+    });
   }, []);
 
   const updateNotifications = useCallback(
     (updater: (current?: NotificationSnapshot[]) => NotificationSnapshot[] | undefined) => {
       setState((current) => {
-        const next = updater(current.notifications?.data);
-        return next
-          ? { ...current, notifications: { data: next, fetchedAt: Date.now() } }
+        const nextList = updater(current.notifications?.data);
+        const next = nextList
+          ? { ...current, notifications: { data: nextList, fetchedAt: Date.now() } }
           : { ...current, notifications: undefined };
+        persistFromState(next);
+        return next;
       });
     },
     [],
   );
 
   const setUnreadCount = useCallback((count: number) => {
-    setState((current) => ({
-      ...current,
-      unreadCount: { data: count, fetchedAt: Date.now() },
-    }));
+    setState((current) => {
+      const next = {
+        ...current,
+        unreadCount: { data: count, fetchedAt: Date.now() },
+      };
+      persistFromState(next);
+      return next;
+    });
   }, []);
 
   const updateUnreadCount = useCallback((updater: (current?: number) => number | undefined) => {
     setState((current) => {
-      const next = updater(current.unreadCount?.data);
-      return next == null
-        ? { ...current, unreadCount: undefined }
-        : { ...current, unreadCount: { data: next, fetchedAt: Date.now() } };
+      const nextCount = updater(current.unreadCount?.data);
+      const next =
+        nextCount == null
+          ? { ...current, unreadCount: undefined }
+          : { ...current, unreadCount: { data: nextCount, fetchedAt: Date.now() } };
+      persistFromState(next);
+      return next;
     });
   }, []);
 
   const setBillers = useCallback((billers: BillersSnapshot) => {
-    setState((current) => ({
-      ...current,
-      billers: { data: billers, fetchedAt: Date.now() },
-    }));
+    setState((current) => {
+      const next = {
+        ...current,
+        billers: { data: billers, fetchedAt: Date.now() },
+      };
+      persistFromState(next);
+      return next;
+    });
   }, []);
 
   const updateBillers = useCallback(
     (updater: (current?: BillersSnapshot) => BillersSnapshot | undefined) => {
       setState((current) => {
-        const next = updater(current.billers?.data);
-        return next
-          ? { ...current, billers: { data: next, fetchedAt: Date.now() } }
+        const nextBillers = updater(current.billers?.data);
+        const next = nextBillers
+          ? { ...current, billers: { data: nextBillers, fetchedAt: Date.now() } }
           : { ...current, billers: undefined };
+        persistFromState(next);
+        return next;
       });
     },
     [],
   );
 
   const setWatch = useCallback((watch: WatchSnapshot) => {
-    setState((current) => ({
-      ...current,
-      watch: { data: watch, fetchedAt: Date.now() },
-    }));
+    setState((current) => {
+      const next = {
+        ...current,
+        watch: { data: watch, fetchedAt: Date.now() },
+      };
+      persistFromState(next);
+      return next;
+    });
   }, []);
 
   const updateWatch = useCallback(
     (updater: (current?: WatchSnapshot) => WatchSnapshot | undefined) => {
       setState((current) => {
-        const next = updater(current.watch?.data);
-        return next
-          ? { ...current, watch: { data: next, fetchedAt: Date.now() } }
+        const nextWatch = updater(current.watch?.data);
+        const next = nextWatch
+          ? { ...current, watch: { data: nextWatch, fetchedAt: Date.now() } }
           : { ...current, watch: undefined };
+        persistFromState(next);
+        return next;
       });
     },
     [],
   );
 
   const setReferral = useCallback((referral: ReferralSnapshot) => {
-    setState((current) => ({
-      ...current,
-      referral: { data: referral, fetchedAt: Date.now() },
-    }));
+    setState((current) => {
+      const next = {
+        ...current,
+        referral: { data: referral, fetchedAt: Date.now() },
+      };
+      persistFromState(next);
+      return next;
+    });
   }, []);
 
   const updateReferral = useCallback(
     (updater: (current?: ReferralSnapshot) => ReferralSnapshot | undefined) => {
       setState((current) => {
-        const next = updater(current.referral?.data);
-        return next
-          ? { ...current, referral: { data: next, fetchedAt: Date.now() } }
+        const nextReferral = updater(current.referral?.data);
+        const next = nextReferral
+          ? { ...current, referral: { data: nextReferral, fetchedAt: Date.now() } }
           : { ...current, referral: undefined };
+        persistFromState(next);
+        return next;
       });
     },
     [],
   );
 
   const setHistory = useCallback((filter: HistoryFilter, transactions: WalletTransaction[]) => {
-    setState((current) => ({
-      ...current,
-      history: {
-        ...current.history,
-        [filter]: { data: transactions, fetchedAt: Date.now() },
-      },
-    }));
+    setState((current) => {
+      const next = {
+        ...current,
+        history: {
+          ...current.history,
+          [filter]: { data: transactions, fetchedAt: Date.now() },
+        },
+      };
+      persistFromState(next);
+      return next;
+    });
   }, []);
 
   const updateHistory = useCallback(
@@ -372,31 +469,40 @@ export function AppCacheProvider({ children }: { children: React.ReactNode }) {
       updater: (current?: WalletTransaction[]) => WalletTransaction[] | undefined,
     ) => {
       setState((current) => {
-        const next = updater(current.history[filter]?.data);
-        if (!next) {
+        const nextList = updater(current.history[filter]?.data);
+        let next: AppCacheState;
+        if (!nextList) {
           const { [filter]: _removed, ...rest } = current.history;
-          return { ...current, history: rest };
+          next = { ...current, history: rest };
+        } else {
+          next = {
+            ...current,
+            history: {
+              ...current.history,
+              [filter]: { data: nextList, fetchedAt: Date.now() },
+            },
+          };
         }
-        return {
-          ...current,
-          history: {
-            ...current.history,
-            [filter]: { data: next, fetchedAt: Date.now() },
-          },
-        };
+        persistFromState(next);
+        return next;
       });
     },
     [],
   );
 
   const clearHistory = useCallback(() => {
-    setState((current) => ({ ...current, history: {} }));
+    setState((current) => {
+      const next = { ...current, history: {} };
+      persistFromState(next);
+      return next;
+    });
   }, []);
 
   const reset = useCallback(() => {
     setState({ history: {} });
     try {
       window.localStorage.removeItem(PERSIST_KEY);
+      window.localStorage.removeItem("ods-app-cache-v1");
     } catch {
       // ignore
     }

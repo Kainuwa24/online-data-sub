@@ -77,12 +77,16 @@ export default function WalletPage() {
     wallet?.fundingProvider ?? "flutterwave",
   );
   const [providers, setProviders] = useState(wallet?.providers);
-  const [loading, setLoading] = useState(!wallet);
+  /** True while account/balance section is resolving (not for create/simulate). */
+  const [shellLoading, setShellLoading] = useState(!wallet);
+  /** True for explicit user actions (create account, simulate). */
+  const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [simAmount, setSimAmount] = useState("2000");
   const isDev = process.env.NODE_ENV === "development";
   const initialLoadDone = useRef(false);
+  const hasCachedWallet = Boolean(wallet);
 
   // Auto-update balance after bank transfers / webhooks (no full page reload)
   useLiveWallet({ intervalMs: 6_000, toastOnCredit: true });
@@ -111,7 +115,7 @@ export default function WalletPage() {
 
   const loadForProvider = useCallback(
     async (provider: FundingProviderId, opts?: { quiet?: boolean }) => {
-      if (!opts?.quiet) setLoading(true);
+      if (!opts?.quiet) setShellLoading(true);
       try {
         const [balanceRes, accountRes] = await Promise.all([
           fetch("/api/wallet/balance", { cache: "no-store" }),
@@ -148,7 +152,7 @@ export default function WalletPage() {
         toastError("Could not refresh wallet");
         return null;
       } finally {
-        if (!opts?.quiet) setLoading(false);
+        if (!opts?.quiet) setShellLoading(false);
       }
     },
     // local setters are stable useState dispatchers; setWallet stabilized in provider
@@ -163,7 +167,7 @@ export default function WalletPage() {
 
     if (wallet) {
       applySnapshotLocal(wallet, localSetters);
-      setLoading(false);
+      setShellLoading(false);
       // Still revalidate quietly so we don't show a stale cached balance after funding
       void loadForProvider(wallet.fundingProvider ?? "flutterwave", { quiet: true });
       return;
@@ -183,7 +187,7 @@ export default function WalletPage() {
   async function refreshAccount() {
     setRefreshing(true);
     try {
-      await loadForProvider(fundingProvider);
+      await loadForProvider(fundingProvider, { quiet: true });
       info("Wallet account refreshed");
     } finally {
       setRefreshing(false);
@@ -191,7 +195,7 @@ export default function WalletPage() {
   }
 
   async function createAccount(forceRecreate = false) {
-    setLoading(true);
+    setBusy(true);
     try {
       const res = await fetch("/api/wallet/funding/account", {
         method: "POST",
@@ -237,7 +241,7 @@ export default function WalletPage() {
       }
       success(data.instructions || "Funding account ready");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
@@ -250,7 +254,7 @@ export default function WalletPage() {
   }
 
   async function simulate() {
-    setLoading(true);
+    setBusy(true);
     try {
       const res = await fetch("/api/wallet/funding/simulate", {
         method: "POST",
@@ -265,7 +269,7 @@ export default function WalletPage() {
       success("Simulated funding successful");
       await loadForProvider(fundingProvider, { quiet: true });
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   }
 
@@ -280,12 +284,19 @@ export default function WalletPage() {
         <div className="rounded-2xl p-5 mt-1 text-white relative overflow-hidden shadow-glow bg-wallet-card">
           <div className="absolute inset-x-0 top-0 h-px bg-white/35" />
           <div className="relative">
-            <div className="text-[11px] uppercase tracking-[0.12em] text-white/70 font-body">
+            <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-white/70 font-body">
               Available balance
+              {shellLoading && hasCachedWallet ? (
+                <span className="h-1.5 w-1.5 rounded-full bg-white/60 animate-pulse" aria-hidden />
+              ) : null}
             </div>
-            <div className="text-[31px] font-display font-extrabold mt-2 tracking-tight">
-              {naira(balanceKobo)}
-            </div>
+            {shellLoading && !hasCachedWallet ? (
+              <div className="mt-2 h-9 w-40 rounded-lg bg-white/20 animate-pulse" />
+            ) : (
+              <div className="text-[31px] font-display font-extrabold mt-2 tracking-tight">
+                {naira(balanceKobo)}
+              </div>
+            )}
           </div>
         </div>
 
@@ -300,7 +311,7 @@ export default function WalletPage() {
                   key={id}
                   type="button"
                   onClick={() => void selectProvider(id)}
-                  disabled={loading}
+                  disabled={busy || shellLoading}
                   className={`rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-colors ${
                     active
                       ? "bg-brand-ink text-white"
@@ -316,7 +327,7 @@ export default function WalletPage() {
           <button
             type="button"
             onClick={() => void refreshAccount()}
-            disabled={loading || refreshing}
+            disabled={busy || refreshing}
             className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-[11px] font-semibold text-gray-600 dark:text-gray-300 disabled:opacity-60"
           >
             <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
@@ -324,7 +335,7 @@ export default function WalletPage() {
           </button>
         </div>
 
-        {!kycReady && (
+        {!kycReady && !shellLoading && (
           <div className="rounded-xl border border-amber-200/80 bg-amber-50 p-4 mb-3 flex gap-3">
             <Shield size={18} className="text-amber-700 shrink-0 mt-0.5" />
             <div className="text-xs font-body text-amber-900 leading-relaxed">
@@ -368,21 +379,28 @@ export default function WalletPage() {
               <button
                 type="button"
                 onClick={() => void createAccount(true)}
-                disabled={loading || !kycReady}
+                disabled={busy || !kycReady}
                 className="mt-4 w-full btn-secondary !py-3"
               >
-                Regenerate with KYC
+                {busy ? "Working…" : "Regenerate with KYC"}
               </button>
             )}
+          </div>
+        ) : shellLoading ? (
+          <div className="card p-5 mb-3 animate-pulse">
+            <div className="h-3 w-24 rounded bg-slate-200/80" />
+            <div className="mt-3 h-8 w-48 rounded bg-slate-200/80" />
+            <div className="mt-4 h-3 w-20 rounded bg-slate-200/70" />
+            <div className="mt-2 h-4 w-36 rounded bg-slate-200/70" />
           </div>
         ) : (
           <button
             type="button"
             onClick={() => void createAccount(false)}
-            disabled={loading || !kycReady || !configured}
+            disabled={busy || !kycReady || !configured}
             className="btn-primary mb-3"
           >
-            {loading
+            {busy
               ? "Creating account…"
               : !configured
                 ? `${meta.label} not configured`
@@ -405,7 +423,7 @@ export default function WalletPage() {
               <button
                 type="button"
                 onClick={() => void simulate()}
-                disabled={loading}
+                disabled={busy}
                 className="rounded-xl bg-brand-ink text-white px-4 text-xs font-bold font-body"
               >
                 Credit
@@ -421,48 +439,67 @@ export default function WalletPage() {
           </Link>
         </div>
         <div className="card overflow-hidden mb-4">
-          {transactions.length === 0 && (
+          {shellLoading && transactions.length === 0 ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className={`flex items-center justify-between px-4 py-3.5 ${
+                  index !== 2 ? "border-b border-brand-line/70" : ""
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="h-10 w-10 rounded-lg bg-slate-200/80 animate-pulse shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="h-3.5 w-2/3 rounded bg-slate-200/80 animate-pulse" />
+                    <div className="mt-2 h-3 w-1/3 rounded bg-slate-200/70 animate-pulse" />
+                  </div>
+                </div>
+                <div className="h-3.5 w-16 rounded bg-slate-200/80 animate-pulse shrink-0 ml-2" />
+              </div>
+            ))
+          ) : transactions.length === 0 ? (
             <div className="text-sm text-brand-muted font-body py-10 text-center">
               No transactions yet.
             </div>
-          )}
-          {transactions.slice(0, 5).map((t, i) => (
-            <Link
-              key={t.id}
-              href={`/history/${t.id}`}
-              className={`flex items-center justify-between px-4 py-3.5 ${
-                i !== Math.min(transactions.length, 5) - 1 ? "border-b border-brand-line/70" : ""
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
-                    t.type === "CREDIT" ? "bg-brand-blueSoft" : "bg-brand-redSoft"
-                  }`}
-                >
-                  {t.type === "CREDIT" ? (
-                    <ArrowDownRight size={15} className="text-brand-blue" />
-                  ) : (
-                    <ArrowUpRight size={15} className="text-brand-red" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[13.5px] font-semibold font-body truncate">{t.label}</div>
-                  <div className="text-[11px] text-brand-muted font-body">
-                    {new Date(t.createdAt).toLocaleString()}
-                  </div>
-                </div>
-              </div>
-              <div
-                className={`text-[13px] font-mono font-semibold ${
-                  t.type === "CREDIT" ? "text-brand-blue" : "text-brand-red"
+          ) : (
+            transactions.slice(0, 5).map((t, i) => (
+              <Link
+                key={t.id}
+                href={`/history/${t.id}`}
+                className={`flex items-center justify-between px-4 py-3.5 ${
+                  i !== Math.min(transactions.length, 5) - 1 ? "border-b border-brand-line/70" : ""
                 }`}
               >
-                {t.type === "CREDIT" ? "+" : "−"}
-                {naira(t.amountKobo)}
-              </div>
-            </Link>
-          ))}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`h-10 w-10 rounded-lg flex items-center justify-center shrink-0 ${
+                      t.type === "CREDIT" ? "bg-brand-blueSoft" : "bg-brand-redSoft"
+                    }`}
+                  >
+                    {t.type === "CREDIT" ? (
+                      <ArrowDownRight size={15} className="text-brand-blue" />
+                    ) : (
+                      <ArrowUpRight size={15} className="text-brand-red" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[13.5px] font-semibold font-body truncate">{t.label}</div>
+                    <div className="text-[11px] text-brand-muted font-body">
+                      {new Date(t.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+                <div
+                  className={`text-[13px] font-mono font-semibold ${
+                    t.type === "CREDIT" ? "text-brand-blue" : "text-brand-red"
+                  }`}
+                >
+                  {t.type === "CREDIT" ? "+" : "−"}
+                  {naira(t.amountKobo)}
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </div>
     </div>

@@ -7,6 +7,9 @@ import { ChevronRight, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useAppCache, type BillersSnapshot, type BillerSnapshot } from "@/components/app/AppCacheProvider";
 import { saveCheckout } from "@/lib/checkout";
+import { ListRowSkeleton } from "@/components/ui/ListSkeleton";
+
+const BILLER_SKELETON_SECTIONS = ["Electricity", "Cable TV", "Internet"] as const;
 
 export default function BillsPage() {
   const router = useRouter();
@@ -23,9 +26,11 @@ export default function BillsPage() {
     if (billers) {
       setBillersState(billers);
       setLoading(false);
-      return;
+    } else {
+      setLoading(true);
     }
-    setLoading(true);
+
+    // Quiet revalidate (or initial load) — shell stays visible with cache
     fetch("/api/bills/billers")
       .then((r) => r.json())
       .then((d) => {
@@ -34,7 +39,8 @@ export default function BillsPage() {
         setBillers(next);
       })
       .finally(() => setLoading(false));
-  }, [billers, setBillers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function refreshBillers(force = false) {
     if (!force && billers) {
@@ -120,6 +126,9 @@ export default function BillsPage() {
     );
   }
 
+  const categories = Object.entries(billersState);
+  const showSkeleton = loading && categories.length === 0;
+
   return (
     <div className="animate-fade-up">
       <TopBar subtitle="Pay" title="Bills" initial="B" />
@@ -136,30 +145,33 @@ export default function BillsPage() {
           </button>
         </div>
 
-        {loading && Object.keys(billersState).length === 0 ? (
-          <div className="text-sm text-brand-muted font-body py-10 text-center">Loading…</div>
-        ) : null}
-
-        {Object.entries(billersState).map(([category, list]) => (
-          <div key={category} className="mt-5">
-            <div className="section-label mb-2">{category}</div>
-            <div className="card overflow-hidden">
-              {list.map((b, i) => (
-                <button
-                  key={b.serviceID}
-                  type="button"
-                  onClick={() => setActive({ category, biller: b })}
-                  className={`w-full flex items-center justify-between px-4 py-3.5 text-left active:bg-slate-50 ${
-                    i !== list.length - 1 ? "border-b border-brand-line/70" : ""
-                  }`}
-                >
-                  <span className="text-[13.5px] font-body text-brand-ink">{b.name}</span>
-                  <ChevronRight size={16} className="text-slate-300" />
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
+        {showSkeleton
+          ? BILLER_SKELETON_SECTIONS.map((category) => (
+              <div key={category} className="mt-5">
+                <div className="section-label mb-2">{category}</div>
+                <ListRowSkeleton rows={3} />
+              </div>
+            ))
+          : categories.map(([category, list]) => (
+              <div key={category} className="mt-5">
+                <div className="section-label mb-2">{category}</div>
+                <div className="card overflow-hidden">
+                  {list.map((b, i) => (
+                    <button
+                      key={b.serviceID}
+                      type="button"
+                      onClick={() => setActive({ category, biller: b })}
+                      className={`w-full flex items-center justify-between px-4 py-3.5 text-left active:bg-slate-50 ${
+                        i !== list.length - 1 ? "border-b border-brand-line/70" : ""
+                      }`}
+                    >
+                      <span className="text-[13.5px] font-body text-brand-ink">{b.name}</span>
+                      <ChevronRight size={16} className="text-slate-300" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
       </div>
     </div>
   );

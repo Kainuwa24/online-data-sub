@@ -8,6 +8,7 @@ import { PhoneField } from "@/components/ui/PhoneField";
 import { isValidNgPhone, validateNgPhone } from "@/lib/phone";
 import { saveCheckout } from "@/lib/checkout";
 import { RefreshCw } from "lucide-react";
+import { PlanGridSkeleton } from "@/components/ui/ListSkeleton";
 
 export type Plan = {
   network: string;
@@ -61,8 +62,9 @@ export function DataPageClient({
 
   useEffect(() => {
     let cancelled = false;
+    // Only show plan-grid skeleton when we have nothing to display yet
+    if (initialPlans.length === 0) setRefreshing(true);
     const t = window.setTimeout(() => {
-      setRefreshing(true);
       fetch("/api/data/plans")
         .then((r) => r.json())
         .then((d) => {
@@ -79,7 +81,7 @@ export function DataPageClient({
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, []);
+  }, [initialPlans.length]);
 
   function goConfirmData(plan: Plan) {
     const check = validateNgPhone(phone, { label: "Recipient number" });
@@ -180,42 +182,47 @@ export function DataPageClient({
         {tab === "data" ? (
           <>
             <div className="section-label mb-3">Choose a plan</div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-5 pb-28 pt-1">
-              {plans.map((p) => {
-                const showBadge = Boolean(p.planType && p.planType !== "STANDARD");
-                return (
-                  <button
-                    key={`${p.network}-${p.variationCode}`}
-                    type="button"
-                    onClick={() => goConfirmData(p)}
-                    disabled={!isValidNgPhone(phone)}
-                    className="card-interactive relative text-left px-3.5 pt-4 pb-3.5 disabled:opacity-50"
-                  >
-                    {showBadge && (
-                      <span className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-brand-blue/15 bg-brand-blueSoft px-2.5 py-0.5 text-[10px] font-semibold leading-none text-brand-blue shadow-soft">
-                        {p.planType}
-                      </span>
-                    )}
-                    <div className="text-lg font-display font-bold text-brand-ink leading-tight">
-                      {p.size}
-                    </div>
-                    <div className="text-[11px] text-brand-muted font-body mt-0.5">
-                      {p.validity}
-                    </div>
-                    <div className="text-brand-blue text-sm font-mono font-bold mt-2">
-                      ₦{(p.priceKobo / 100).toLocaleString()}
-                    </div>
-                  </button>
-                );
-              })}
-              {plans.length === 0 && (
-                <div className="col-span-2 text-sm text-brand-muted font-body py-10 text-center card">
+            {allPlans.length === 0 && refreshing ? (
+              <PlanGridSkeleton count={6} />
+            ) : plans.length === 0 ? (
+              <div className="pb-28">
+                <div className="text-sm text-brand-muted font-body py-10 text-center card">
                   {allPlans.length === 0
-                    ? "Loading plans…"
+                    ? "No plans available right now."
                     : "No plans for this network right now."}
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-x-3 gap-y-5 pb-28 pt-1">
+                {plans.map((p) => {
+                  const showBadge = Boolean(p.planType && p.planType !== "STANDARD");
+                  return (
+                    <button
+                      key={`${p.network}-${p.variationCode}`}
+                      type="button"
+                      onClick={() => goConfirmData(p)}
+                      disabled={!isValidNgPhone(phone)}
+                      className="card-interactive relative text-left px-3.5 pt-4 pb-3.5 disabled:opacity-50"
+                    >
+                      {showBadge && (
+                        <span className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-brand-blue/15 bg-brand-blueSoft px-2.5 py-0.5 text-[10px] font-semibold leading-none text-brand-blue shadow-soft">
+                          {p.planType}
+                        </span>
+                      )}
+                      <div className="text-lg font-display font-bold text-brand-ink leading-tight">
+                        {p.size}
+                      </div>
+                      <div className="text-[11px] text-brand-muted font-body mt-0.5">
+                        {p.validity}
+                      </div>
+                      <div className="text-brand-blue text-sm font-mono font-bold mt-2">
+                        ₦{(p.priceKobo / 100).toLocaleString()}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </>
         ) : (
           <div className="pb-28">

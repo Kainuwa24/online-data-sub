@@ -25,12 +25,35 @@ export default function ReferralPage() {
       setEarnedFormatted(referral.earnedFormatted || "₦0");
       setFriends(referral.invites || []);
       setLoading(false);
+      // Quiet revalidate
+      void (async () => {
+        try {
+          const r = await fetch("/api/referrals/me");
+          const data = await r.json();
+          if (!r.ok) return;
+          const next: ReferralSnapshot = {
+            code: data.code || "",
+            tagline: data.tagline || "Give ₦500, get ₦500",
+            friendsJoined: data.friendsJoined || 0,
+            earnedFormatted: data.earnedFormatted || "₦0",
+            invites: data.invites || [],
+          };
+          setCode(next.code);
+          setTagline(next.tagline);
+          setFriendsJoined(next.friendsJoined);
+          setEarnedFormatted(next.earnedFormatted);
+          setFriends(next.invites);
+          setReferral(next);
+        } catch {
+          // keep cached
+        }
+      })();
       return;
     }
 
     if (force) {
       setRefreshing(true);
-    } else {
+    } else if (!referral) {
       setLoading(true);
     }
 
@@ -55,7 +78,7 @@ export default function ReferralPage() {
       setReferral(next);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load");
+      if (!referral) setError(e instanceof Error ? e.message : "Failed to load");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -64,7 +87,8 @@ export default function ReferralPage() {
 
   useEffect(() => {
     void loadReferral();
-  }, [referral]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const inviteLink =
     typeof window !== "undefined"
@@ -158,7 +182,22 @@ export default function ReferralPage() {
 
         <div className="section-label mt-6 mb-2">Your invites</div>
         <div className="card overflow-hidden">
-          {!loading && friends.length === 0 ? (
+          {loading && friends.length === 0 ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className={`flex items-center justify-between px-4 py-3.5 ${
+                  index !== 2 ? "border-b border-brand-line/70" : ""
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="h-3.5 w-1/2 rounded bg-slate-200/80 animate-pulse" />
+                  <div className="mt-2 h-3 w-1/3 rounded bg-slate-200/70 animate-pulse" />
+                </div>
+                <div className="h-5 w-12 rounded-full bg-slate-200/80 animate-pulse" />
+              </div>
+            ))
+          ) : friends.length === 0 ? (
             <div className="py-8 px-4 text-center text-sm text-brand-muted font-body">
               No invites yet. Share your code to start earning.
             </div>

@@ -16,6 +16,7 @@ import {
   type NotificationSnapshot,
 } from "@/components/app/AppCacheProvider";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
+import { ListRowSkeleton } from "@/components/ui/ListSkeleton";
 import { useToast } from "@/components/ui/Toast";
 
 function relativeTime(iso: string) {
@@ -61,11 +62,25 @@ export default function NotificationsPage() {
         setUnreadCount(notifications.filter((n) => n.unread).length);
         setLoading(false);
         setError(null);
+        // Quiet revalidate
+        void (async () => {
+          try {
+            const res = await fetch("/api/notifications");
+            const data = await res.json();
+            if (!res.ok) return;
+            const next = data.notifications || [];
+            setNotifs(next);
+            setNotifications(next);
+            setUnreadCount(next.filter((n: NotificationSnapshot) => n.unread).length);
+          } catch {
+            // keep cached
+          }
+        })();
         return;
       }
       if (force) {
         setRefreshing(true);
-      } else {
+      } else if (!notifications) {
         setLoading(true);
       }
       setError(null);
@@ -78,7 +93,9 @@ export default function NotificationsPage() {
         setNotifications(next);
         setUnreadCount(next.filter((n: NotificationSnapshot) => n.unread).length);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load notifications");
+        if (!notifications) {
+          setError(e instanceof Error ? e.message : "Failed to load notifications");
+        }
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -89,7 +106,8 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function markAll() {
     const res = await fetch("/api/notifications/read-all", { method: "POST" });
@@ -165,10 +183,10 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div className="text-sm text-brand-muted font-body py-10 text-center">Loading…</div>
-        ) : error ? (
+        {error && notifs.length === 0 ? (
           <div className="text-sm text-brand-red font-body py-6 text-center">{error}</div>
+        ) : loading && notifs.length === 0 ? (
+          <ListRowSkeleton rows={5} />
         ) : notifs.length === 0 ? (
           <div className="card py-12 px-5 text-center">
             <div className="mx-auto h-12 w-12 rounded-2xl bg-brand-blueSoft flex items-center justify-center mb-3">
