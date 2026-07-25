@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+const PERSIST_KEY = "ods-app-cache-v1";
 
 export type HistoryFilter = "ALL" | "CREDIT" | "DEBIT";
 
@@ -109,6 +118,46 @@ type AppCacheState = {
   history: Partial<Record<HistoryFilter, CacheEntry<WalletTransaction[]>>>;
 };
 
+type PersistedShell = {
+  profile?: ProfileSnapshot;
+  wallet?: WalletSnapshot;
+};
+
+function readPersistedShell(): PersistedShell {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(PERSIST_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as PersistedShell;
+    return {
+      profile: parsed?.profile,
+      wallet: parsed?.wallet,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function writePersistedShell(shell: PersistedShell) {
+  if (typeof window === "undefined") return;
+  try {
+    if (!shell.profile && !shell.wallet) {
+      window.localStorage.removeItem(PERSIST_KEY);
+      return;
+    }
+    window.localStorage.setItem(PERSIST_KEY, JSON.stringify(shell));
+  } catch {
+    // Quota / private mode — ignore
+  }
+}
+
+function persistFromState(state: AppCacheState) {
+  writePersistedShell({
+    profile: state.profile?.data,
+    wallet: state.wallet?.data,
+  });
+}
+
 type AppCacheContextValue = {
   profile?: ProfileSnapshot;
   wallet?: WalletSnapshot;
@@ -150,39 +199,66 @@ const AppCacheContext = createContext<AppCacheContextValue | null>(null);
 export function AppCacheProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppCacheState>({ history: {} });
 
-  const setProfile = useCallback((profile: ProfileSnapshot) => {
+  // Restore last shell (name + balance) so home feels instant on return visits.
+  useEffect(() => {
+    const persisted = readPersistedShell();
+    if (!persisted.profile && !persisted.wallet) return;
     setState((current) => ({
       ...current,
-      profile: { data: profile, fetchedAt: Date.now() },
+      profile: persisted.profile
+        ? current.profile ?? { data: persisted.profile, fetchedAt: 0 }
+        : current.profile,
+      wallet: persisted.wallet
+        ? current.wallet ?? { data: persisted.wallet, fetchedAt: 0 }
+        : current.wallet,
     }));
+  }, []);
+
+  const setProfile = useCallback((profile: ProfileSnapshot) => {
+    setState((current) => {
+      const next = {
+        ...current,
+        profile: { data: profile, fetchedAt: Date.now() },
+      };
+      persistFromState(next);
+      return next;
+    });
   }, []);
 
   const updateProfile = useCallback(
     (updater: (current?: ProfileSnapshot) => ProfileSnapshot | undefined) => {
       setState((current) => {
-        const next = updater(current.profile?.data);
-        return next
-          ? { ...current, profile: { data: next, fetchedAt: Date.now() } }
+        const nextProfile = updater(current.profile?.data);
+        const next = nextProfile
+          ? { ...current, profile: { data: nextProfile, fetchedAt: Date.now() } }
           : { ...current, profile: undefined };
+        persistFromState(next);
+        return next;
       });
     },
     [],
   );
 
   const setWallet = useCallback((wallet: WalletSnapshot) => {
-    setState((current) => ({
-      ...current,
-      wallet: { data: wallet, fetchedAt: Date.now() },
-    }));
+    setState((current) => {
+      const next = {
+        ...current,
+        wallet: { data: wallet, fetchedAt: Date.now() },
+      };
+      persistFromState(next);
+      return next;
+    });
   }, []);
 
   const updateWallet = useCallback(
     (updater: (current?: WalletSnapshot) => WalletSnapshot | undefined) => {
       setState((current) => {
-        const next = updater(current.wallet?.data);
-        return next
-          ? { ...current, wallet: { data: next, fetchedAt: Date.now() } }
+        const nextWallet = updater(current.wallet?.data);
+        const next = nextWallet
+          ? { ...current, wallet: { data: nextWallet, fetchedAt: Date.now() } }
           : { ...current, wallet: undefined };
+        persistFromState(next);
+        return next;
       });
     },
     [],
@@ -319,6 +395,11 @@ export function AppCacheProvider({ children }: { children: React.ReactNode }) {
 
   const reset = useCallback(() => {
     setState({ history: {} });
+    try {
+      window.localStorage.removeItem(PERSIST_KEY);
+    } catch {
+      // ignore
+    }
   }, []);
 
   const historyView = useMemo(
