@@ -34,18 +34,18 @@ Config: `capacitor.config.ts`
 # Use Node 24 for Cap CLI
 nvm use 24
 
-export CAPACITOR_SERVER_URL="https://YOUR-APP.up.railway.app"   # no trailing slash
+export CAPACITOR_SERVER_URL="https://online-data-sub-production.up.railway.app"   # no trailing slash
 npm run cap:sync
 ```
 
-Confirm `NEXT_PUBLIC_APP_URL` on Railway is the **same origin**.
+`capacitor.config.ts` already defaults to this Railway origin (and ignores localhost). Confirm `NEXT_PUBLIC_APP_URL` on Railway is the **same origin**.
 
 ## Open in Android Studio (on your PC)
 
 ```bash
 git pull
 nvm use 24
-export CAPACITOR_SERVER_URL="https://YOUR-APP.up.railway.app"
+export CAPACITOR_SERVER_URL="https://online-data-sub-production.up.railway.app"
 npm ci
 npm run cap:sync
 npm run cap:android    # opens Android Studio
@@ -60,13 +60,13 @@ The Android app uses native Google Sign-In first. Tapping Google opens the devic
 Google Cloud setup:
 
 - Web OAuth client: set `GOOGLE_CLIENT_ID` to this client ID on Railway and when running `npm run cap:sync:prod`.
-- Web OAuth redirect for browser fallback: `https://YOUR-APP.up.railway.app/api/auth/google/callback`.
+- Web OAuth redirect for browser fallback: `https://online-data-sub-production.up.railway.app/api/auth/google/callback`.
 - Android OAuth client: add package name `app.onlinedatasub.mobile` and the SHA-1/SHA-256 fingerprints for your debug and release signing keys.
 
 After changing any Google client ID or Railway URL, sync before building:
 
 ```bash
-export CAPACITOR_SERVER_URL="https://YOUR-APP.up.railway.app"
+export CAPACITOR_SERVER_URL="https://online-data-sub-production.up.railway.app"
 export GOOGLE_CLIENT_ID="YOUR-WEB-OAUTH-CLIENT-ID.apps.googleusercontent.com"
 npm run cap:sync:prod
 ```

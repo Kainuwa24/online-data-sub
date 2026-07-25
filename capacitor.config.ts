@@ -1,18 +1,33 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
+/** Production Next.js origin on Railway (native WebView loads this). */
+const RAILWAY_APP_URL = "https://online-data-sub-production.up.railway.app";
+
 /**
  * Native shell loads the production web app (Next.js on Railway).
  *
- * Set CAPACITOR_SERVER_URL when syncing, e.g.:
- *   CAPACITOR_SERVER_URL=https://your-app.up.railway.app npx cap sync
+ * Priority:
+ *   1. CAPACITOR_SERVER_URL
+ *   2. NEXT_PUBLIC_APP_URL (if not localhost)
+ *   3. RAILWAY_APP_URL default
  *
- * Or set NEXT_PUBLIC_APP_URL to that origin in the environment used for sync.
+ * Override when syncing:
+ *   CAPACITOR_SERVER_URL=https://other-host.example npm run cap:sync
  */
-const serverUrl = (
-  process.env.CAPACITOR_SERVER_URL ||
-  process.env.NEXT_PUBLIC_APP_URL ||
-  ""
-).replace(/\/$/, "");
+function resolveServerUrl() {
+  const fromCap = (process.env.CAPACITOR_SERVER_URL || "").replace(/\/$/, "");
+  if (fromCap) return fromCap;
+
+  const fromPublic = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+  // Never bake localhost into the Android shell
+  if (fromPublic && !/localhost|127\.0\.0\.1/i.test(fromPublic)) {
+    return fromPublic;
+  }
+
+  return RAILWAY_APP_URL;
+}
+
+const serverUrl = resolveServerUrl();
 const serverHost = serverUrl ? new URL(serverUrl).hostname : "";
 const googleServerClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "";
 
