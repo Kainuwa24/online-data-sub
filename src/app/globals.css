@@ -98,6 +98,53 @@
     padding-top: 1.5rem;
   }
 
+  /* Sticky page headers — sit above scrolling content */
+  .sticky-app-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: rgba(247, 248, 250, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid transparent;
+  }
+
+  html.dark .sticky-app-header {
+    background: rgba(11, 18, 32, 0.92);
+  }
+
+  .pull-refresh-root {
+    min-height: 100vh;
+    position: relative;
+  }
+
+  .pull-refresh-content {
+    min-height: 100vh;
+  }
+
+  .pull-refresh-content.is-pulling {
+    will-change: transform;
+  }
+
+  .pull-refresh-indicator {
+    position: fixed;
+    top: max(0.75rem, env(safe-area-inset-top));
+    left: 50%;
+    z-index: 60;
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-blue);
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(232, 236, 242, 0.9);
+    box-shadow: var(--shadow-card);
+    pointer-events: none;
+    transition: opacity 120ms ease, transform 120ms ease;
+  }
+
   .card {
     border-radius: 1rem;
     background: #fff;
@@ -487,6 +534,12 @@ input[type="number"]::-webkit-outer-spin-button {
 /* Dark-mode utility corrections for Tailwind brand classes used across app pages. */
 html.dark .auth-app-inner {
   background: #0b1220;
+}
+
+html.dark .pull-refresh-indicator {
+  color: #8ab4ff;
+  background: rgba(17, 24, 39, 0.94);
+  border-color: #1f2937;
 }
 
 html.dark .text-brand-ink,

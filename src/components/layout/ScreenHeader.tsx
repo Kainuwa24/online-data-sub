@@ -27,7 +27,7 @@ export function ScreenHeader({
   }
 
   return (
-    <div className="screen-header-pad flex items-center gap-3 px-5 pb-3">
+    <header className="sticky-app-header screen-header-pad flex items-center gap-3 px-5 pb-3">
       <button
         type="button"
         onClick={handleBack}
@@ -37,6 +37,6 @@ export function ScreenHeader({
         <ArrowLeft size={18} strokeWidth={1.75} />
       </button>
       <h1 className="text-lg font-display font-bold text-brand-ink tracking-tight">{title}</h1>
-    </div>
+    </header>
   );
 }
