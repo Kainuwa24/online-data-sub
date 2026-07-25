@@ -94,6 +94,9 @@
 
   .pull-refresh-content {
     min-height: 100vh;
+  }
+
+  .pull-refresh-content.is-pulling {
     will-change: transform;
   }
 

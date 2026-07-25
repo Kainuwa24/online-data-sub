@@ -13,11 +13,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <BiometricGate>
       <PullToRefresh>
-        <div className="app-shell pb-28">
-          {children}
-          <BottomNav />
-        </div>
+        <div className="app-shell pb-28">{children}</div>
       </PullToRefresh>
+      {/* Outside pull-to-refresh so transform does not break position:fixed */}
+      <BottomNav />
     </BiometricGate>
   );
 }

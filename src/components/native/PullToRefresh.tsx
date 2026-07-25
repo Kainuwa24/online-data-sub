@@ -88,9 +88,11 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         />
       </div>
       <div
-        className="pull-refresh-content"
+        className={`pull-refresh-content${active ? " is-pulling" : ""}`}
         style={{
-          transform: `translateY(${distance}px)`,
+          // Only apply transform while pulling/refreshing so fixed children
+          // (if any) stay viewport-relative when idle.
+          transform: active ? `translateY(${distance}px)` : undefined,
           transition: pulling.current ? "none" : "transform 180ms ease",
         }}
       >
