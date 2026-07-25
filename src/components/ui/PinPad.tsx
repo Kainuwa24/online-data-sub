@@ -1,6 +1,6 @@
 "use client";
 
-import { Delete } from "lucide-react";
+import { Delete, Fingerprint } from "lucide-react";
 
 export function PinDots({ length, filled }: { length: number; filled: number }) {
   return (
@@ -22,15 +22,54 @@ export function PinDots({ length, filled }: { length: number; filled: number }) 
 export function NumPad({
   onPress,
   onBackspace,
+  onBiometric,
+  biometricBusy = false,
 }: {
   onPress: (digit: string) => void;
   onBackspace: () => void;
+  /** When set, shows fingerprint/face key left of 0 */
+  onBiometric?: () => void;
+  biometricBusy?: boolean;
 }) {
-  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "back"];
+  // Bottom-left is biometric (if enabled) or empty; center 0; right backspace
+  const keys = [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    onBiometric ? "bio" : "",
+    "0",
+    "back",
+  ];
+
   return (
     <div className="grid grid-cols-3 gap-3 px-4 sm:px-8">
       {keys.map((k, i) => {
         if (k === "") return <div key={i} />;
+
+        if (k === "bio") {
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={onBiometric}
+              disabled={biometricBusy}
+              className="h-14 flex items-center justify-center rounded-2xl text-brand-blue
+                border border-brand-blue/20 bg-brand-blueSoft/60
+                transition-all duration-150 active:scale-95
+                disabled:opacity-60 dark:bg-slate-800 dark:border-slate-600"
+              aria-label="Confirm with fingerprint or face"
+            >
+              <Fingerprint size={24} strokeWidth={1.75} className={biometricBusy ? "animate-pulse" : ""} />
+            </button>
+          );
+        }
+
         if (k === "back") {
           return (
             <button
@@ -44,6 +83,7 @@ export function NumPad({
             </button>
           );
         }
+
         return (
           <button
             key={i}

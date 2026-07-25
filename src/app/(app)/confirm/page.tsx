@@ -66,6 +66,7 @@ export default function ConfirmPurchasePage() {
   const [error, setError] = useState<string | null>(null);
   const [reference, setReference] = useState<string | null>(null);
   const [biometricTransactionEnabled, setBiometricTransactionEnabled] = useState(false);
+  const [biometricBusy, setBiometricBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,29 +101,17 @@ export default function ConfirmPurchasePage() {
   }, [phase]);
 
   const submit = useCallback(
-    async (fullPin: string) => {
+    async (auth: { pin?: string; confirmWithBiometric?: boolean }) => {
       if (!payload || phase === "processing") return;
       setPinError(null);
       setError(null);
-      setPin(fullPin);
-
-      if (biometricTransactionEnabled) {
-        const bio = await authenticateBiometric({
-          title: "Verify transaction",
-          subtitle: "Use fingerprint or face to confirm this purchase",
-        });
-        if (!bio.verified) {
-          setPin("");
-          setPinError(
-            bio.cancelled
-              ? "Biometric verification was cancelled"
-              : bio.message || "Biometric verification failed",
-          );
-          return;
-        }
-      }
+      if (auth.pin) setPin(auth.pin);
 
       setPhase("processing");
+
+      const authBody = auth.confirmWithBiometric
+        ? { confirmWithBiometric: true as const }
+        : { pin: auth.pin };
 
       try {
         let res: Response;
@@ -136,7 +125,7 @@ export default function ConfirmPurchasePage() {
               planLabel: payload.planLabel,
               priceKobo: payload.priceKobo,
               recipientPhone: payload.recipientPhone,
-              pin: fullPin,
+              ...authBody,
             }),
           });
         } else if (payload.kind === "airtime") {
@@ -147,7 +136,7 @@ export default function ConfirmPurchasePage() {
               network: payload.network,
               amountKobo: payload.amountKobo,
               recipientPhone: payload.recipientPhone,
-              pin: fullPin,
+              ...authBody,
             }),
           });
         } else {
@@ -161,7 +150,7 @@ export default function ConfirmPurchasePage() {
               variationCode: payload.variationCode,
               accountNumber: payload.accountNumber,
               amountKobo: payload.amountKobo,
-              pin: fullPin,
+              ...authBody,
             }),
           });
         }
@@ -196,16 +185,37 @@ export default function ConfirmPurchasePage() {
         setPin("");
       }
     },
-    [payload, phase, toastSuccess, biometricTransactionEnabled],
+    [payload, phase, toastSuccess, updateWallet, clearHistory, updateUnreadCount, updateNotifications],
   );
 
   function press(d: string) {
-    if (phase !== "review") return;
+    if (phase !== "review" || biometricBusy) return;
     if (pin.length >= 4) return;
     const next = pin + d;
     setPin(next);
     setPinError(null);
-    if (next.length === 4) void submit(next);
+    if (next.length === 4) void submit({ pin: next });
+  }
+
+  async function confirmWithBiometric() {
+    if (phase !== "review" || biometricBusy) return;
+    setBiometricBusy(true);
+    setPinError(null);
+    try {
+      const bio = await authenticateBiometric({
+        title: "Confirm payment",
+        subtitle: "Use fingerprint or face instead of PIN",
+      });
+      if (!bio.verified) {
+        if (!bio.cancelled) {
+          setPinError(bio.message || "Biometric verification failed");
+        }
+        return;
+      }
+      await submit({ confirmWithBiometric: true });
+    } finally {
+      setBiometricBusy(false);
+    }
   }
 
   if (!ready) {
@@ -345,20 +355,25 @@ export default function ConfirmPurchasePage() {
       {phase === "review" && (
         <div className="auth-panel">
           <div className="text-center text-[13px] font-semibold font-body text-brand-ink mb-1">
-            Enter PIN to pay
+            {biometricTransactionEnabled ? "PIN or biometrics to pay" : "Enter PIN to pay"}
           </div>
           <PinDots length={4} filled={pin.length} />
           {biometricTransactionEnabled && (
             <div className="text-center text-[11px] text-brand-muted font-body mb-3 -mt-1">
-              Biometric verification is on for this transaction.
+              Enter your PIN, or tap the fingerprint icon next to 0.
             </div>
           )}
           <NumPad
             onPress={press}
             onBackspace={() => {
+              if (biometricBusy) return;
               setPin(pin.slice(0, -1));
               setPinError(null);
             }}
+            onBiometric={
+              biometricTransactionEnabled ? () => void confirmWithBiometric() : undefined
+            }
+            biometricBusy={biometricBusy}
           />
           {pinError && (
             <div className="text-center text-brand-red text-xs font-body font-medium mt-3">

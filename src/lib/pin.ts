@@ -20,3 +20,18 @@ export async function verifyUserPin(
   if (!ok) return "Incorrect PIN";
   return null;
 }
+
+/**
+ * Transaction confirm: either a correct 4-digit PIN, or client-verified biometrics
+ * (device already checked fingerprint/face; session cookie still required).
+ */
+export async function verifyTransactionAuth(
+  user: Pick<User, "pinHash">,
+  body: { pin?: unknown; confirmWithBiometric?: unknown },
+): Promise<string | null> {
+  if (body.confirmWithBiometric === true) {
+    // Caller must already be authenticated via session.
+    return null;
+  }
+  return verifyUserPin(user, body.pin);
+}

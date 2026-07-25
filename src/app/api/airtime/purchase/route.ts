@@ -4,7 +4,7 @@ import { generateTxnReference } from "@/lib/auth";
 import { purchaseAirtime } from "@/lib/services/asbdata";
 import { debitWallet, refundWallet, markTxnFailed } from "@/lib/wallet";
 import { validateNgPhone } from "@/lib/phone";
-import { verifyUserPin } from "@/lib/pin";
+import { verifyTransactionAuth } from "@/lib/pin";
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser();
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     label: "Recipient number",
   });
 
-  const pinError = await verifyUserPin(user, body.pin);
+  const pinError = await verifyTransactionAuth(user, body);
   if (pinError) {
     return NextResponse.json({ error: pinError }, { status: 401 });
   }
