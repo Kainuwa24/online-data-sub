@@ -14,9 +14,7 @@ import java.util.concurrent.Executor;
 
 @CapacitorPlugin(name = "BiometricAuth")
 public class BiometricAuthPlugin extends Plugin {
-    private static final int AUTHENTICATORS =
-        BiometricManager.Authenticators.BIOMETRIC_STRONG |
-        BiometricManager.Authenticators.DEVICE_CREDENTIAL;
+    private static final int AUTHENTICATORS = BiometricManager.Authenticators.BIOMETRIC_STRONG;
 
     @PluginMethod
     public void isAvailable(PluginCall call) {
@@ -36,7 +34,7 @@ public class BiometricAuthPlugin extends Plugin {
         }
 
         String title = call.getString("title", "Verify identity");
-        String subtitle = call.getString("subtitle", "Use biometrics or device lock to continue");
+        String subtitle = call.getString("subtitle", "Use biometrics to continue");
         String description = call.getString("description", "");
 
         Executor executor = ContextCompat.getMainExecutor(getActivity());
@@ -66,6 +64,7 @@ public class BiometricAuthPlugin extends Plugin {
         BiometricPrompt.PromptInfo.Builder builder = new BiometricPrompt.PromptInfo.Builder()
             .setTitle(title)
             .setSubtitle(subtitle)
+            .setNegativeButtonText("Cancel")
             .setAllowedAuthenticators(AUTHENTICATORS);
 
         if (description != null && !description.isEmpty()) {

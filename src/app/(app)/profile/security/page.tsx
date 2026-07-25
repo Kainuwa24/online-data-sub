@@ -109,7 +109,7 @@ export default function SecurityPinPage() {
     setBiometricBusy(true);
     const verified = await authenticateBiometric({
       title: enabled ? "Enable biometrics" : "Turn off biometrics",
-      subtitle: "Verify with your device lock to update this setting",
+      subtitle: "Verify with biometrics to update this setting",
     });
     setBiometricBusy(false);
     if (!verified) return;
@@ -147,7 +147,7 @@ export default function SecurityPinPage() {
             <div className="min-w-0 flex-1">
               <div className="text-sm font-display font-bold text-brand-ink">Biometric security</div>
               <p className="text-xs text-brand-muted font-body mt-1 leading-relaxed">
-                Use fingerprint, face, or device lock where your phone supports it.
+                Use fingerprint or face unlock where your phone supports it.
               </p>
             </div>
           </div>
@@ -184,7 +184,7 @@ export default function SecurityPinPage() {
 
           {!biometricAvailable && (
             <div className="mt-4 text-xs text-brand-muted font-body">
-              Biometric security is available only inside the Android app on a device with screen lock or biometrics set up.
+              Biometric security is available only inside the Android app on a device with fingerprint or face unlock set up.
             </div>
           )}
         </div>

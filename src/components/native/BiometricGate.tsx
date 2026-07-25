@@ -21,7 +21,7 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
     setBusy(true);
     const verified = await authenticateBiometric({
       title: "Unlock Online Data Sub",
-      subtitle: "Use biometrics or your device lock to continue",
+      subtitle: "Use biometrics to continue",
     });
     setBusy(false);
     if (verified) setState("open");
@@ -75,8 +75,8 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
         </h1>
         <p className="text-sm text-brand-muted font-body mt-2 mb-6 leading-relaxed">
           {state === "unavailable"
-            ? "Turn off biometric unlock in Security & PIN after signing in, or set up biometrics/device lock on this phone."
-            : "Verify with your fingerprint, face, or device lock to continue."}
+            ? "Turn off biometric unlock in Security & PIN after signing in, or set up fingerprint/face unlock on this phone."
+            : "Verify with your fingerprint or face to continue."}
         </p>
         {state === "unavailable" ? (
           <Button

@@ -51,7 +51,7 @@ function LoginForm() {
     setError("");
     const verified = await authenticateBiometric({
       title: "Unlock Online Data Sub",
-      subtitle: "Use biometrics or your device lock to continue",
+      subtitle: "Use biometrics to continue",
     });
     setBiometricBusy(false);
     if (!verified) return;
