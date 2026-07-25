@@ -88,61 +88,30 @@
     padding-top: env(safe-area-inset-top, 0px);
   }
 
-  /* Shared header top spacing: design padding + safe area when not inside .app-shell */
+  /*
+   * Sticky headers: pin under the status bar on real device scroll.
+   * Solid background (no transform parents) so scrolling stays native.
+   * Safe-area is on .app-shell; header only needs design padding.
+   */
+  .sticky-app-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    padding-top: 1.5rem;
+    background: #f7f8fa;
+  }
+
+  html.dark .sticky-app-header {
+    background: #0b1220;
+  }
+
+  /* Non-sticky screens still use this pad when needed */
   .screen-header-pad {
     padding-top: max(1.5rem, calc(env(safe-area-inset-top, 0px) + 0.75rem));
   }
 
   .app-shell .screen-header-pad {
-    /* Safe area already applied on .app-shell — only keep design padding */
     padding-top: 1.5rem;
-  }
-
-  /* Sticky page headers — sit above scrolling content */
-  .sticky-app-header {
-    position: sticky;
-    top: 0;
-    z-index: 40;
-    background: rgba(247, 248, 250, 0.92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid transparent;
-  }
-
-  html.dark .sticky-app-header {
-    background: rgba(11, 18, 32, 0.92);
-  }
-
-  .pull-refresh-root {
-    min-height: 100vh;
-    position: relative;
-  }
-
-  .pull-refresh-content {
-    min-height: 100vh;
-  }
-
-  .pull-refresh-content.is-pulling {
-    will-change: transform;
-  }
-
-  .pull-refresh-indicator {
-    position: fixed;
-    top: max(0.75rem, env(safe-area-inset-top));
-    left: 50%;
-    z-index: 60;
-    width: 2.35rem;
-    height: 2.35rem;
-    border-radius: 999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--brand-blue);
-    background: rgba(255, 255, 255, 0.94);
-    border: 1px solid rgba(232, 236, 242, 0.9);
-    box-shadow: var(--shadow-card);
-    pointer-events: none;
-    transition: opacity 120ms ease, transform 120ms ease;
   }
 
   .card {
@@ -534,12 +503,6 @@ input[type="number"]::-webkit-outer-spin-button {
 /* Dark-mode utility corrections for Tailwind brand classes used across app pages. */
 html.dark .auth-app-inner {
   background: #0b1220;
-}
-
-html.dark .pull-refresh-indicator {
-  color: #8ab4ff;
-  background: rgba(17, 24, 39, 0.94);
-  border-color: #1f2937;
 }
 
 html.dark .text-brand-ink,

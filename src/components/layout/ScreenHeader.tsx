@@ -27,7 +27,7 @@ export function ScreenHeader({
   }
 
   return (
-    <header className="sticky-app-header screen-header-pad flex items-center gap-3 px-5 pb-3">
+    <header className="sticky-app-header flex items-center gap-3 px-5 pb-3">
       <button
         type="button"
         onClick={handleBack}
