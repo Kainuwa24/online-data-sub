@@ -186,7 +186,7 @@ Declare roughly:
 | Biometrics | **No** (processed on device only) | No | — |
 
 - Encryption in transit: **Yes** (HTTPS)
-- Account deletion: document process (email support) or in-app later
+- Account deletion: **Yes — in-app** at **Profile → Delete account** (also described in Privacy Policy). Deletes profile, wallet, transactions, funding accounts, notifications; session ends immediately.
 - Children: **Not directed to children**
 
 ---
@@ -214,6 +214,7 @@ Complete the IARC questionnaire in Play Console (finance / utility style answers
 - [ ] Wallet funding path works
 - [ ] Biometric unlock + transaction biometric (optional settings)
 - [ ] Privacy + terms URLs open without login
+- [ ] Account deletion works (Profile → Delete account)
 - [ ] No cleartext / localhost baked into Capacitor config
 - [ ] `versionCode` unique for this upload
 - [ ] AAB signed with upload key

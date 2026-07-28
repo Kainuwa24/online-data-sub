@@ -15,6 +15,7 @@ import {
   RefreshCw,
   FileText,
   ScrollText,
+  Trash2,
 } from "lucide-react";
 import { useAppCache } from "@/components/app/AppCacheProvider";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
@@ -194,6 +195,15 @@ export default function ProfilePage() {
           <LogOut size={17} className="text-brand-red" />
           <span className="text-[13.5px] font-semibold font-body text-brand-red">Log out</span>
         </button>
+
+        <Link
+          href="/profile/delete"
+          className="w-full mt-2.5 flex items-center gap-3 rounded-2xl border border-brand-line bg-white px-4 py-3.5 active:bg-slate-50"
+        >
+          <Trash2 size={17} className="text-brand-muted" />
+          <span className="flex-1 text-[13.5px] font-body text-brand-ink">Delete account</span>
+          <ChevronRight size={16} className="text-slate-300" />
+        </Link>
       </div>
     </div>
   );

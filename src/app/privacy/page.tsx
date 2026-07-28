@@ -135,7 +135,16 @@ export default function PrivacyPage() {
               <li>Update profile details in the app</li>
               <li>Disable biometric unlock in Security settings</li>
               <li>Sign out on shared devices</li>
-              <li>Contact us to correct data or request account deletion</li>
+              <li>
+                <strong>Delete your account in the app:</strong> Profile → Delete account.
+                This permanently removes your profile, wallet, and transaction history from
+                our systems after you confirm with your PIN (or account email if you have no
+                PIN). You can also email{" "}
+                <a className="text-brand-blue font-semibold" href="mailto:support@onlinedatasub.app">
+                  support@onlinedatasub.app
+                </a>{" "}
+                for help with deletion.
+              </li>
             </ul>
           </section>
 
