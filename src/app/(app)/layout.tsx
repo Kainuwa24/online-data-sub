@@ -11,8 +11,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <BiometricGate>
-      <div className="app-shell pb-28">
-        {children}
+      <div className="app-shell">
+        <main className="app-scroll">
+          {children}
+        </main>
         <BottomNav />
       </div>
     </BiometricGate>
