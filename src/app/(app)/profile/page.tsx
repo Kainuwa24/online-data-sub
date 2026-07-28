@@ -175,9 +175,7 @@ export default function ProfilePage() {
               <Link
                 key={r.href}
                 href={r.href}
-                className={`flex items-center gap-3 px-4 py-3.5 active:bg-slate-50 ${
-                  i !== legalRows.length - 1 ? "border-b border-brand-line/70" : ""
-                }`}
+                className={`flex items-center gap-3 px-4 py-3.5 active:bg-slate-50 border-b border-brand-line/70`}
               >
                 <Icon size={17} className="text-brand-muted shrink-0" strokeWidth={1.75} />
                 <span className="flex-1 text-[13.5px] font-body text-brand-ink">{r.label}</span>
@@ -185,25 +183,26 @@ export default function ProfilePage() {
               </Link>
             );
           })}
+          <Link
+            href="/profile/delete"
+            className="flex items-center gap-3 px-4 py-3.5 active:bg-red-50"
+          >
+            <Trash2 size={17} className="text-brand-red shrink-0" strokeWidth={1.75} />
+            <span className="flex-1 text-[13.5px] font-semibold font-body text-brand-red">
+              Delete account
+            </span>
+            <ChevronRight size={16} className="text-slate-300" />
+          </Link>
         </div>
 
         <button
           type="button"
           onClick={logout}
-          className="w-full mt-4 flex items-center gap-3 rounded-2xl bg-brand-redSoft px-4 py-3.5 active:scale-[0.99] transition-transform"
+          className="w-full mt-4 mb-4 flex items-center gap-3 rounded-2xl bg-brand-redSoft px-4 py-3.5 active:scale-[0.99] transition-transform"
         >
           <LogOut size={17} className="text-brand-red" />
           <span className="text-[13.5px] font-semibold font-body text-brand-red">Log out</span>
         </button>
-
-        <Link
-          href="/profile/delete"
-          className="w-full mt-2.5 flex items-center gap-3 rounded-2xl border border-brand-line bg-white px-4 py-3.5 active:bg-slate-50"
-        >
-          <Trash2 size={17} className="text-brand-muted" />
-          <span className="flex-1 text-[13.5px] font-body text-brand-ink">Delete account</span>
-          <ChevronRight size={16} className="text-slate-300" />
-        </Link>
       </div>
     </div>
   );
