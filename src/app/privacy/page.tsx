@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
-  "https://online-data-sub-production.up.railway.app";
+  "https://onlinedatasub.com.ng";
 
 export default function PrivacyPage() {
   const updated = "25 July 2026";

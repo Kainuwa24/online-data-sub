@@ -1,6 +1,6 @@
 # Mobile app (Capacitor Android)
 
-The Android app is a **native shell** that loads your production Next.js app (Railway) in a WebView. APIs, wallet, and webhooks stay on the server.
+The Android app is a **native shell** that loads your production Next.js app (custom domain, backed by Railway) in a WebView. APIs, wallet, and webhooks stay on the server.
 
 ## Requirements
 
@@ -8,19 +8,19 @@ The Android app is a **native shell** that loads your production Next.js app (Ra
 |------|--------|
 | **Node.js ≥ 22** (24 recommended) | Capacitor CLI 8 requires Node 22+. This machine: `nvm use 24` |
 | **Android Studio** | On your laptop/desktop (SDK + emulator or device) |
-| **Railway URL** | Live HTTPS app with env vars set |
+| **Production URL** | `https://onlinedatasub.com.ng` (custom domain) |
 
 This Linux server **cannot** build APKs without Java/Android SDK. Scaffolding is done here; compile on a machine with Android Studio.
 
 ## Architecture
 
 ```
-Android WebView  →  https://YOUR-RAILWAY-APP  →  Next.js + Prisma + webhooks
+Android WebView  →  https://onlinedatasub.com.ng  →  Next.js + Prisma + webhooks (Railway)
 ```
 
 Config: `capacitor.config.ts`  
 - `webDir`: `native-www` (placeholder if offline)  
-- `server.url`: production origin (`CAPACITOR_SERVER_URL` or `NEXT_PUBLIC_APP_URL`)
+- `server.url`: production origin (defaults to **https://onlinedatasub.com.ng**)
 
 ## One-time setup (already done in repo)
 
@@ -28,24 +28,25 @@ Config: `capacitor.config.ts`
 - `android/` platform  
 - Status bar / splash / back-button bootstrap (`CapacitorBootstrap`)
 
-## Point the shell at Railway
+## Point the shell at production (custom domain)
 
 ```bash
 # Use Node 24 for Cap CLI
 nvm use 24
 
-export CAPACITOR_SERVER_URL="https://online-data-sub-production.up.railway.app"   # no trailing slash
+export CAPACITOR_SERVER_URL="https://onlinedatasub.com.ng"   # no trailing slash
 npm run cap:sync
 ```
 
-`capacitor.config.ts` already defaults to this Railway origin (and ignores localhost). Confirm `NEXT_PUBLIC_APP_URL` on Railway is the **same origin**.
+`capacitor.config.ts` already defaults to `https://onlinedatasub.com.ng` (and ignores localhost).  
+On Railway (or your host), set **`NEXT_PUBLIC_APP_URL=https://onlinedatasub.com.ng`** so OAuth/callbacks match the custom domain—not the `*.up.railway.app` hostname.
 
 ## Open in Android Studio (on your PC)
 
 ```bash
 git pull
 nvm use 24
-export CAPACITOR_SERVER_URL="https://online-data-sub-production.up.railway.app"
+export CAPACITOR_SERVER_URL="https://onlinedatasub.com.ng"
 npm ci
 npm run cap:sync
 npm run cap:android    # opens Android Studio
@@ -59,14 +60,15 @@ The Android app uses native Google Sign-In first. Tapping Google opens the devic
 
 Google Cloud setup:
 
-- Web OAuth client: set `GOOGLE_CLIENT_ID` to this client ID on Railway and when running `npm run cap:sync:prod`.
-- Web OAuth redirect for browser fallback: `https://online-data-sub-production.up.railway.app/api/auth/google/callback`.
+- Web OAuth client: set `GOOGLE_CLIENT_ID` on the server and when running `npm run cap:sync:prod`.
+- Web OAuth redirect for browser fallback: `https://onlinedatasub.com.ng/api/auth/google/callback`.
+- Authorized JavaScript origins should include `https://onlinedatasub.com.ng`.
 - Android OAuth client: add package name `app.onlinedatasub.mobile` and the SHA-1/SHA-256 fingerprints for your debug and release signing keys.
 
-After changing any Google client ID or Railway URL, sync before building:
+After changing any Google client ID or production URL, sync before building:
 
 ```bash
-export CAPACITOR_SERVER_URL="https://online-data-sub-production.up.railway.app"
+export CAPACITOR_SERVER_URL="https://onlinedatasub.com.ng"
 export GOOGLE_CLIENT_ID="YOUR-WEB-OAUTH-CLIENT-ID.apps.googleusercontent.com"
 npm run cap:sync:prod
 ```
@@ -86,7 +88,7 @@ Full checklist: **[PLAY_STORE.md](./PLAY_STORE.md)**.
 
 ```bash
 # 1) Bake production server + Google client into the shell
-export CAPACITOR_SERVER_URL="https://online-data-sub-production.up.railway.app"
+export CAPACITOR_SERVER_URL="https://onlinedatasub.com.ng"
 export GOOGLE_CLIENT_ID="YOUR-WEB-CLIENT-ID.apps.googleusercontent.com"
 npm run cap:sync:prod
 
@@ -113,7 +115,7 @@ npx cap add ios
 
 | Issue | Fix |
 |-------|-----|
-| Blank WebView | `CAPACITOR_SERVER_URL` wrong or Railway down; check `/api/health` |
+| Blank WebView | `CAPACITOR_SERVER_URL` wrong or domain/Railway down; check `https://onlinedatasub.com.ng/api/health` |
 | CLI: Node ≥ 22 required | `nvm use 24` |
 | Stale plugins | `npm run cap:sync` after package changes |
 | Google login fails in app | OAuth redirect/origin must match Railway URL |

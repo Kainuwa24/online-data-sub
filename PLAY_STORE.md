@@ -2,9 +2,10 @@
 
 Android package: **`app.onlinedatasub.mobile`**  
 App name: **Online Data Sub**  
-Production web: **https://online-data-sub-production.up.railway.app**  
-Privacy policy (required): **https://online-data-sub-production.up.railway.app/privacy**  
-Terms: **https://online-data-sub-production.up.railway.app/terms**
+Production web: **https://onlinedatasub.com.ng**  
+Privacy policy (required): **https://onlinedatasub.com.ng/privacy**  
+Terms: **https://onlinedatasub.com.ng/terms**  
+Railway (infra fallback only): `https://online-data-sub-production.up.railway.app`
 
 This guide walks from a signed **AAB** to a Play Console listing.
 
@@ -15,8 +16,8 @@ This guide walks from a signed **AAB** to a Play Console listing.
 | Item | Status / notes |
 |------|----------------|
 | Google Play Developer account ($25 one-time) | Required |
-| Production app live on Railway | Health: `/api/health` |
-| `NEXT_PUBLIC_APP_URL` on Railway | Must be the production HTTPS origin |
+| Production app live on custom domain | Health: `https://onlinedatasub.com.ng/api/health` |
+| `NEXT_PUBLIC_APP_URL` on host | Must be `https://onlinedatasub.com.ng` (not the Railway hostname) |
 | `GOOGLE_CLIENT_ID` + secret on Railway | Web OAuth client |
 | Android OAuth client | Package `app.onlinedatasub.mobile` + **release** SHA-1 |
 | Privacy policy URL public | `/privacy` (no login) |
@@ -66,14 +67,14 @@ Add that SHA-1 to Google Cloud → Android OAuth client for `app.onlinedatasub.m
 
 ```bash
 # From repo root — Node 22+
-export CAPACITOR_SERVER_URL="https://online-data-sub-production.up.railway.app"
+export CAPACITOR_SERVER_URL="https://onlinedatasub.com.ng"
 export GOOGLE_CLIENT_ID="YOUR-WEB-CLIENT-ID.apps.googleusercontent.com"
 npm run cap:sync:prod
 ```
 
 Confirm `android/app/src/main/assets/capacitor.config.json` has:
 
-- `server.url` → Railway HTTPS
+- `server.url` → `https://onlinedatasub.com.ng`
 - `plugins.GoogleNativeAuth.serverClientId` → Web client ID
 
 ---
@@ -155,7 +156,7 @@ Support: support@onlinedatasub.app
 ### Contact
 
 - Email: `support@onlinedatasub.app`
-- Privacy: `https://online-data-sub-production.up.railway.app/privacy`
+- Privacy: `https://onlinedatasub.com.ng/privacy`
 
 ### Graphics (you must produce)
 
@@ -236,7 +237,7 @@ First review can take days. Respond quickly to policy emails.
 
 ```bash
 # Production sync
-CAPACITOR_SERVER_URL=https://online-data-sub-production.up.railway.app \
+CAPACITOR_SERVER_URL=https://onlinedatasub.com.ng \
 GOOGLE_CLIENT_ID=....apps.googleusercontent.com \
 npm run cap:sync:prod
 

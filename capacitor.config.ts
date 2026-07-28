@@ -1,15 +1,16 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
-/** Production Next.js origin on Railway (native WebView loads this). */
-const RAILWAY_APP_URL = "https://online-data-sub-production.up.railway.app";
+/** Production app origin (custom domain). Railway remains a fallback host. */
+const PRODUCTION_APP_URL = "https://onlinedatasub.com.ng";
+const RAILWAY_FALLBACK_HOST = "online-data-sub-production.up.railway.app";
 
 /**
- * Native shell loads the production web app (Next.js on Railway).
+ * Native shell loads the production web app.
  *
  * Priority:
  *   1. CAPACITOR_SERVER_URL
  *   2. NEXT_PUBLIC_APP_URL (if not localhost)
- *   3. RAILWAY_APP_URL default
+ *   3. PRODUCTION_APP_URL (custom domain)
  *
  * Override when syncing:
  *   CAPACITOR_SERVER_URL=https://other-host.example npm run cap:sync
@@ -24,7 +25,7 @@ function resolveServerUrl() {
     return fromPublic;
   }
 
-  return RAILWAY_APP_URL;
+  return PRODUCTION_APP_URL;
 }
 
 const serverUrl = resolveServerUrl();
@@ -42,6 +43,9 @@ const config: CapacitorConfig = {
         cleartext: serverUrl.startsWith("http://"),
         allowNavigation: [
           serverHost,
+          "onlinedatasub.com.ng",
+          "*.onlinedatasub.com.ng",
+          RAILWAY_FALLBACK_HOST,
           "*.up.railway.app",
           "accounts.google.com",
           "*.google.com",
