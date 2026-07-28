@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Mail, MessageCircle } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, ChevronUp, Mail, MessageCircle, FileText, Shield } from "lucide-react";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 
 const FAQS: { q: string; a: string }[] = [
@@ -78,6 +79,34 @@ export default function HelpPage() {
               <div className="text-[11px] text-brand-muted font-body">{email}</div>
             </div>
           </a>
+        </div>
+
+        <div className="section-label mb-2">Legal</div>
+        <div className="card overflow-hidden mb-6">
+          <Link
+            href="/privacy"
+            className="flex items-center gap-3 px-4 py-3.5 border-b border-brand-line/70 active:bg-slate-50"
+          >
+            <Shield size={17} className="text-brand-blue" />
+            <div>
+              <div className="text-[13.5px] font-semibold font-body text-brand-ink">
+                Privacy policy
+              </div>
+              <div className="text-[11px] text-brand-muted font-body">How we handle your data</div>
+            </div>
+          </Link>
+          <Link
+            href="/terms"
+            className="flex items-center gap-3 px-4 py-3.5 active:bg-slate-50"
+          >
+            <FileText size={17} className="text-brand-blue" />
+            <div>
+              <div className="text-[13.5px] font-semibold font-body text-brand-ink">
+                Terms of service
+              </div>
+              <div className="text-[11px] text-brand-muted font-body">Rules for using the app</div>
+            </div>
+          </Link>
         </div>
 
         <div className="section-label mb-2">FAQs</div>

@@ -1,6 +1,6 @@
 {
   "name": "online-data-sub",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -16,7 +16,9 @@
     "cap:sync": "cap sync",
     "cap:android": "cap open android",
     "cap:copy": "cap copy android",
-    "cap:sync:prod": "node -e \"if(!process.env.CAPACITOR_SERVER_URL&&!process.env.NEXT_PUBLIC_APP_URL){console.error('Set CAPACITOR_SERVER_URL or NEXT_PUBLIC_APP_URL to your Railway HTTPS origin');process.exit(1)}\" && cap sync android"
+    "cap:sync:prod": "node -e \"if(!process.env.CAPACITOR_SERVER_URL&&!process.env.NEXT_PUBLIC_APP_URL){console.error('Set CAPACITOR_SERVER_URL or NEXT_PUBLIC_APP_URL to your Railway HTTPS origin');process.exit(1)}\" && cap sync android",
+    "android:bundle": "cd android && node -e \"require('child_process').execSync(process.platform==='win32'?'gradlew.bat bundleRelease':'./gradlew bundleRelease',{stdio:'inherit'})\"",
+    "android:apk": "cd android && node -e \"require('child_process').execSync(process.platform==='win32'?'gradlew.bat assembleRelease':'./gradlew assembleRelease',{stdio:'inherit'})\""
   },
   "engines": {
     "node": ">=20"

@@ -80,17 +80,25 @@ npm run cap:sync:prod
 | `npm run cap:android` | Open Android Studio |
 | `npm run cap:copy` | Copy web assets only |
 
-## Build a release APK / AAB
+## Build a release APK / AAB (Play Store)
 
-In Android Studio: **Build → Generate Signed Bundle / APK**.  
-Or on a machine with SDK:
+Full checklist: **[PLAY_STORE.md](./PLAY_STORE.md)**.
 
 ```bash
-cd android
-./gradlew assembleRelease   # or bundleRelease for Play Store
+# 1) Bake production server + Google client into the shell
+export CAPACITOR_SERVER_URL="https://online-data-sub-production.up.railway.app"
+export GOOGLE_CLIENT_ID="YOUR-WEB-CLIENT-ID.apps.googleusercontent.com"
+npm run cap:sync:prod
+
+# 2) Create keystore once → android/keystore.properties (see keystore.properties.example)
+
+# 3) Play Store upload (AAB)
+npm run android:bundle
+# → android/app/build/outputs/bundle/release/app-release.aab
 ```
 
-You need a keystore for release signing (do not commit keystores).
+Or Android Studio: **Build → Generate Signed App Bundle**.  
+Never commit `*.jks` / `keystore.properties`.
 
 ## iOS
 

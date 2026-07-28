@@ -11,3 +11,12 @@ prisma/dev.db
 prisma/dev.db-journal
 *.db
 *.db-journal
+
+# Android / Play Store signing — never commit
+*.jks
+*.keystore
+android/keystore.properties
+android/*.jks
+android/*.keystore
+android/app/*.jks
+android/app/*.keystore
