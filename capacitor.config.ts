@@ -41,6 +41,8 @@ const config: CapacitorConfig = {
     ? {
         url: serverUrl,
         cleartext: serverUrl.startsWith("http://"),
+        // Local branded page when the remote app cannot load (no network / DNS / timeout)
+        errorPath: "offline.html",
         allowNavigation: [
           serverHost,
           "onlinedatasub.com.ng",
@@ -54,7 +56,10 @@ const config: CapacitorConfig = {
           "api.flutterwave.com",
         ],
       }
-    : undefined,
+    : {
+        // Local-only mode still gets a branded offline/placeholder experience
+        errorPath: "offline.html",
+      },
   plugins: {
     GoogleNativeAuth: {
       serverClientId: googleServerClientId,

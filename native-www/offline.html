@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#f7f8fa" />
+    <title>Connection problem · Online Data Sub</title>
+    <style>
+      :root {
+        --blue: #2c5aa0;
+        --blue-dark: #1a3a6b;
+        --blue-soft: #e8f0fa;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e8ecf2;
+        --bg: #f7f8fa;
+        --soft: 0 3px 16px -6px rgba(15, 23, 42, 0.16);
+        --glow: 0 14px 32px -20px rgba(44, 90, 160, 0.55);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        height: 100%;
+        background: linear-gradient(180deg, #f8fafc 0%, #eef3f8 52%, #f8fafc 100%);
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: var(--ink);
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding:
+          max(1.5rem, env(safe-area-inset-top))
+          1.25rem
+          max(1.5rem, env(safe-area-inset-bottom));
+      }
+
+      .card {
+        width: 100%;
+        max-width: 22rem;
+        background: #fff;
+        border: 1px solid rgba(232, 236, 242, 0.95);
+        border-radius: 1.25rem;
+        box-shadow: var(--soft);
+        padding: 1.75rem 1.35rem 1.5rem;
+        text-align: center;
+      }
+
+      .mark {
+        width: 3.75rem;
+        height: 3.75rem;
+        margin: 0 auto 1rem;
+        border-radius: 1rem;
+        background: #fff url("./app-logo.png") center / cover no-repeat;
+        border: 1px solid var(--line);
+        box-shadow: var(--soft);
+      }
+
+      .badge {
+        width: 3.25rem;
+        height: 3.25rem;
+        margin: 0 auto 1rem;
+        border-radius: 999px;
+        background: var(--blue-soft);
+        color: var(--blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .badge svg {
+        width: 1.55rem;
+        height: 1.55rem;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+      }
+
+      p {
+        margin: 0.55rem 0 0;
+        color: var(--muted);
+        font-size: 0.875rem;
+        line-height: 1.55;
+      }
+
+      .tips {
+        margin: 1.15rem 0 0;
+        text-align: left;
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: 0.9rem;
+        padding: 0.85rem 0.95rem;
+      }
+
+      .tips div {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.45rem;
+      }
+
+      .tips ul {
+        margin: 0;
+        padding-left: 1.1rem;
+        color: var(--ink);
+        font-size: 0.8125rem;
+        line-height: 1.5;
+      }
+
+      .tips li + li {
+        margin-top: 0.25rem;
+      }
+
+      .actions {
+        margin-top: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+
+      button {
+        appearance: none;
+        border: 0;
+        border-radius: 0.9rem;
+        min-height: 3rem;
+        font-size: 0.9375rem;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+      }
+
+      .primary {
+        color: #fff;
+        background: linear-gradient(180deg, var(--blue), var(--blue-dark));
+        box-shadow: var(--glow);
+      }
+
+      .primary:active {
+        transform: scale(0.98);
+      }
+
+      .primary[disabled] {
+        opacity: 0.65;
+      }
+
+      .secondary {
+        color: var(--blue);
+        background: var(--blue-soft);
+        border: 1px solid rgba(44, 90, 160, 0.12);
+      }
+
+      .status {
+        margin-top: 0.85rem;
+        min-height: 1.1rem;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .brand {
+        margin-top: 1.15rem;
+        font-size: 0.7rem;
+        letter-spacing: 0.04em;
+        color: #94a3b8;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="mark" aria-hidden="true"></div>
+      <div class="badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M1 1l22 22" stroke-linecap="round" />
+          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" stroke-linecap="round" />
+          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" stroke-linecap="round" />
+          <path d="M10.71 5.05A16 16 0 0 1 22.58 9" stroke-linecap="round" />
+          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" stroke-linecap="round" />
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0" stroke-linecap="round" />
+          <path d="M12 20h.01" stroke-linecap="round" />
+        </svg>
+      </div>
+      <h1>No internet connection</h1>
+      <p>
+        We couldn&rsquo;t reach Online Data Sub. Check your network, then try again.
+      </p>
+
+      <div class="tips">
+        <div>Quick checks</div>
+        <ul>
+          <li>Turn on mobile data or Wi‑Fi</li>
+          <li>Disable VPN if one is on</li>
+          <li>Make sure you&rsquo;re not in airplane mode</li>
+        </ul>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="primary" id="retryBtn">Try again</button>
+        <button type="button" class="secondary" id="settingsHint">Still offline?</button>
+      </div>
+      <div class="status" id="status" aria-live="polite"></div>
+      <div class="brand">ONLINE DATA SUB</div>
+    </div>
+
+    <script>
+      // Production app URL (custom domain). Keep in sync with capacitor.config.ts.
+      var APP_URL = "https://onlinedatasub.com.ng";
+      var retryBtn = document.getElementById("retryBtn");
+      var statusEl = document.getElementById("status");
+      var settingsHint = document.getElementById("settingsHint");
+      var busy = false;
+
+      function setStatus(msg) {
+        statusEl.textContent = msg || "";
+      }
+
+      function goOnline() {
+        if (busy) return;
+        busy = true;
+        retryBtn.disabled = true;
+        retryBtn.textContent = "Connecting…";
+        setStatus("Checking connection…");
+
+        // Prefer hard navigation back to the live app (not reload of this offline file).
+        var target = APP_URL + "/?reconnect=" + Date.now();
+        try {
+          window.location.replace(target);
+        } catch (e) {
+          window.location.href = target;
+        }
+
+        // If navigation stalls (still offline), re-enable after a moment
+        setTimeout(function () {
+          busy = false;
+          retryBtn.disabled = false;
+          retryBtn.textContent = "Try again";
+          setStatus("Still offline. Check your connection and try again.");
+        }, 4000);
+      }
+
+      retryBtn.addEventListener("click", goOnline);
+      settingsHint.addEventListener("click", function () {
+        setStatus("Open phone Settings → Network, then tap Try again.");
+      });
+
+      // Auto-retry once when the device comes back online
+      window.addEventListener("online", function () {
+        setStatus("Back online — reconnecting…");
+        goOnline();
+      });
+    </script>
+  </body>
+</html>
