@@ -10,10 +10,15 @@ export function Button({
   children: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
-  variant?: "primary" | "secondary";
+  variant?: "primary" | "secondary" | "danger";
   type?: "button" | "submit";
 }) {
-  const styles = variant === "primary" ? "btn-primary" : "btn-secondary";
+  const styles =
+    variant === "secondary"
+      ? "btn-secondary"
+      : variant === "danger"
+        ? "btn-primary !bg-brand-red !shadow-none"
+        : "btn-primary";
 
   return (
     <button type={type} onClick={onClick} disabled={disabled} className={styles}>

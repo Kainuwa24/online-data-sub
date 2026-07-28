@@ -147,9 +147,9 @@ export default function DeleteAccountPage() {
         ) : null}
 
         <Button
+          variant="danger"
           onClick={() => void deleteAccount()}
           disabled={!canSubmit}
-          className="!bg-brand-red !shadow-none"
         >
           {busy ? "Deleting…" : "Permanently delete account"}
         </Button>
