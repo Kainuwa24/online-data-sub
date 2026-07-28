@@ -13,6 +13,8 @@ import {
   Moon,
   Sun,
   RefreshCw,
+  FileText,
+  ScrollText,
 } from "lucide-react";
 import { useAppCache } from "@/components/app/AppCacheProvider";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
@@ -86,6 +88,11 @@ export default function ProfilePage() {
     { icon: HelpCircle, label: "Help & support", href: "/profile/help" },
   ];
 
+  const legalRows = [
+    { icon: FileText, label: "Privacy policy", href: "/privacy" },
+    { icon: ScrollText, label: "Terms of service", href: "/terms" },
+  ];
+
   const initial = (name || "?").trim().charAt(0).toUpperCase();
 
   return (
@@ -157,6 +164,26 @@ export default function ProfilePage() {
               />
             </button>
           </div>
+        </div>
+
+        <div className="section-label mt-6 mb-2">Legal</div>
+        <div className="card overflow-hidden">
+          {legalRows.map((r, i) => {
+            const Icon = r.icon;
+            return (
+              <Link
+                key={r.href}
+                href={r.href}
+                className={`flex items-center gap-3 px-4 py-3.5 active:bg-slate-50 ${
+                  i !== legalRows.length - 1 ? "border-b border-brand-line/70" : ""
+                }`}
+              >
+                <Icon size={17} className="text-brand-muted shrink-0" strokeWidth={1.75} />
+                <span className="flex-1 text-[13.5px] font-body text-brand-ink">{r.label}</span>
+                <ChevronRight size={16} className="text-slate-300" />
+              </Link>
+            );
+          })}
         </div>
 
         <button

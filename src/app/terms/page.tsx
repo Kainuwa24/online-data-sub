@@ -10,8 +10,8 @@ export default function TermsPage() {
   const updated = "25 July 2026";
 
   return (
-    <main className="min-h-screen bg-[#F7F8FA] text-brand-ink">
-      <div className="max-w-2xl mx-auto px-5 py-10 pb-16">
+    <main className="legal-page text-brand-ink">
+      <div className="legal-page-inner">
         <p className="text-[11px] uppercase tracking-[0.12em] text-brand-muted font-body font-medium">
           Legal
         </p>
