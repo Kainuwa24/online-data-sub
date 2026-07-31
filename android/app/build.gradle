@@ -8,10 +8,10 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "app.onlinedatasub.mobile"
+    namespace = "online.datasub"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "app.onlinedatasub.mobile"
+        applicationId "online.datasub"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Bump versionCode for every Play upload; versionName is user-facing.
