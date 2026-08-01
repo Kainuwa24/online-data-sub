@@ -16,6 +16,7 @@ import {
   FileText,
   ScrollText,
   Trash2,
+  ShieldCheck,
 } from "lucide-react";
 import { useAppCache } from "@/components/app/AppCacheProvider";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
@@ -92,6 +93,7 @@ export default function ProfilePage() {
   const legalRows = [
     { icon: FileText, label: "Privacy policy", href: "/privacy" },
     { icon: ScrollText, label: "Terms of service", href: "/terms" },
+    { icon: ShieldCheck, label: "Account deletion info", href: "/account-deletion" },
   ];
 
   const initial = (name || "?").trim().charAt(0).toUpperCase();
@@ -119,9 +121,9 @@ export default function ProfilePage() {
           </div>
           <div className="min-w-0">
             <div className="font-display font-bold text-[16px] text-brand-ink truncate">
-              {name || "—"}
+              {name || "-"}
             </div>
-            <div className="text-xs text-brand-muted font-body mt-0.5">{phone || "—"}</div>
+            <div className="text-xs text-brand-muted font-body mt-0.5">{phone || "-"}</div>
           </div>
         </div>
 
@@ -169,13 +171,13 @@ export default function ProfilePage() {
 
         <div className="section-label mt-6 mb-2">Legal</div>
         <div className="card overflow-hidden">
-          {legalRows.map((r, i) => {
+          {legalRows.map((r) => {
             const Icon = r.icon;
             return (
               <Link
                 key={r.href}
                 href={r.href}
-                className={`flex items-center gap-3 px-4 py-3.5 active:bg-slate-50 border-b border-brand-line/70`}
+                className="flex items-center gap-3 px-4 py-3.5 active:bg-slate-50 border-b border-brand-line/70"
               >
                 <Icon size={17} className="text-brand-muted shrink-0" strokeWidth={1.75} />
                 <span className="flex-1 text-[13.5px] font-body text-brand-ink">{r.label}</span>

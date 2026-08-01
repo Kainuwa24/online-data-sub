@@ -1,4 +1,4 @@
-package app.onlinedatasub.mobile;
+package online.datasub;
 
 import android.os.Bundle;
 import android.view.View;

@@ -1,4 +1,4 @@
-package app.onlinedatasub.mobile;
+package online.datasub;
 
 import android.app.Activity;
 import android.content.Intent;

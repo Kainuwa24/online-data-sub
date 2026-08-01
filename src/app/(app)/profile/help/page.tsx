@@ -2,33 +2,45 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronUp, Mail, MessageCircle, FileText, Shield } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Mail,
+  MessageCircle,
+  FileText,
+  Shield,
+  Trash2,
+} from "lucide-react";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
 
 const FAQS: { q: string; a: string }[] = [
   {
     q: "How do I fund my wallet?",
-    a: "On Home, tap Fund wallet. You’ll get a PalmPay account number (when configured). Transfer from any bank app; your balance updates after confirmation. In development you can use “simulate funding”.",
+    a: "On Home, tap Fund wallet. You will get a funding account number when configured. Transfer from any bank app and your balance updates after confirmation.",
   },
   {
     q: "Why did a data purchase fail?",
-    a: "Common causes: wrong network, invalid number, low wallet balance, or the vendor rejecting the plan. Your wallet is refunded automatically if the vendor fails after debit.",
+    a: "Common causes include wrong network, invalid number, low wallet balance, or the vendor rejecting the plan. Your wallet is refunded automatically if the vendor fails after debit.",
   },
   {
     q: "How do referrals work?",
-    a: "Share your code from Profile → Refer & earn. When a friend signs up with your code, you both get a wallet bonus (default ₦500).",
+    a: "Share your code from Profile - Refer and earn. When a friend signs up with your code, you both get a wallet bonus when the referral rules are met.",
   },
   {
     q: "I forgot my PIN",
-    a: "Your 4-digit PIN is for purchases, not login. Go to Profile → Security & PIN, or use Forgot PIN (OTP to your phone) to reset it.",
+    a: "Your 4-digit PIN is for purchases, not login. Go to Profile - Security and PIN, or use Forgot PIN to reset it with phone OTP.",
   },
   {
     q: "How do I change my PIN?",
-    a: "Go to Profile → Security & PIN and enter your current PIN, then a new one twice.",
+    a: "Go to Profile - Security and PIN and enter your current PIN, then a new one twice.",
   },
   {
     q: "Why do you need BVN or NIN?",
-    a: "PalmPay requires identity on permanent virtual accounts so bank transfers can complete. Add BVN (preferred) or NIN under Edit profile.",
+    a: "Funding providers may require identity details for permanent virtual accounts so bank transfers can complete. Add BVN or NIN under Edit profile when requested.",
+  },
+  {
+    q: "How do I delete my account?",
+    a: "Go to Profile - Delete account to delete in the app. If you cannot access the app, use the public Account deletion page to email a deletion request.",
   },
 ];
 
@@ -41,9 +53,9 @@ export default function HelpPage() {
     "",
   );
   const waUrl = `https://wa.me/${wa}?text=${encodeURIComponent(
-    "Hi Online Data Sub support — I need help with: ",
+    "Hi Online Data Sub support - I need help with: ",
   )}`;
-  const mailUrl = `mailto:${email}?subject=${encodeURIComponent("Online Data Sub — Help")}`;
+  const mailUrl = `mailto:${email}?subject=${encodeURIComponent("Online Data Sub - Help")}`;
 
   return (
     <div className="animate-fade-up pb-28">
@@ -97,7 +109,7 @@ export default function HelpPage() {
           </Link>
           <Link
             href="/terms"
-            className="flex items-center gap-3 px-4 py-3.5 active:bg-slate-50"
+            className="flex items-center gap-3 px-4 py-3.5 border-b border-brand-line/70 active:bg-slate-50"
           >
             <FileText size={17} className="text-brand-blue" />
             <div>
@@ -105,6 +117,18 @@ export default function HelpPage() {
                 Terms of service
               </div>
               <div className="text-[11px] text-brand-muted font-body">Rules for using the app</div>
+            </div>
+          </Link>
+          <Link
+            href="/account-deletion"
+            className="flex items-center gap-3 px-4 py-3.5 active:bg-slate-50"
+          >
+            <Trash2 size={17} className="text-brand-red" />
+            <div>
+              <div className="text-[13.5px] font-semibold font-body text-brand-ink">
+                Account deletion
+              </div>
+              <div className="text-[11px] text-brand-muted font-body">How to delete your account</div>
             </div>
           </Link>
         </div>

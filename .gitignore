@@ -20,3 +20,6 @@ android/*.jks
 android/*.keystore
 android/app/*.jks
 android/app/*.keystore
+# Local Android Studio / Gradle machine state
+android/.idea/
+android/gradle/gradle-daemon-jvm.properties
