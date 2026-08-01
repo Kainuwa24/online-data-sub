@@ -18,15 +18,20 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
 
+import org.json.JSONObject;
+
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
 @CapacitorPlugin(name = "GoogleNativeAuth")
 public class GoogleNativeAuthPlugin extends Plugin {
     private GoogleSignInClient signInClient;
 
     @PluginMethod
     public void signIn(PluginCall call) {
-        String serverClientId = getConfig().getString("serverClientId", "");
+        String serverClientId = resolveServerClientId();
         if (serverClientId == null || serverClientId.trim().isEmpty()) {
-            call.reject("Google native sign-in is not configured. Set GOOGLE_CLIENT_ID before Capacitor sync.");
+            call.reject("Google native sign-in is not configured. Set GOOGLE_CLIENT_ID before Capacitor sync and rebuild the app.");
             return;
         }
 
@@ -49,6 +54,31 @@ public class GoogleNativeAuthPlugin extends Plugin {
     private void launchSignIn(PluginCall call) {
         Intent intent = signInClient.getSignInIntent();
         startActivityForResult(call, intent, "handleSignInResult");
+    }
+
+    private String resolveServerClientId() {
+        String fromPluginConfig = getConfig().getString("serverClientId", "");
+        if (fromPluginConfig != null && !fromPluginConfig.trim().isEmpty()) {
+            return fromPluginConfig.trim();
+        }
+
+        try (InputStream input = getContext().getAssets().open("capacitor.config.json")) {
+            byte[] bytes = new byte[input.available()];
+            int read = input.read(bytes);
+            if (read <= 0) return "";
+
+            String json = new String(bytes, 0, read, StandardCharsets.UTF_8);
+            JSONObject root = new JSONObject(json);
+            JSONObject plugins = root.optJSONObject("plugins");
+            if (plugins == null) return "";
+
+            JSONObject google = plugins.optJSONObject("GoogleNativeAuth");
+            if (google == null) return "";
+
+            return google.optString("serverClientId", "").trim();
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     @ActivityCallback

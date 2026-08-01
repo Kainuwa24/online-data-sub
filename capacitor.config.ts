@@ -33,7 +33,7 @@ const serverHost = serverUrl ? new URL(serverUrl).hostname : "";
 const googleServerClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || "";
 
 const config: CapacitorConfig = {
-  appId: "app.onlinedatasub.mobile",
+  appId: "online.datasub",
   appName: "Online Data Sub",
   // Placeholder assets; WebView loads server.url when set
   webDir: "native-www",
