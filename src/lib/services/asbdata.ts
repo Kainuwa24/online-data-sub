@@ -38,6 +38,15 @@ export type AsbResult = {
   raw?: unknown;
 };
 
+export type AsbBalanceResult = {
+  provider: "asbdata";
+  configured: boolean;
+  success: boolean;
+  balanceKobo?: number;
+  message?: string;
+  raw?: unknown;
+};
+
 const asbAgent = new Agent({
   connect: { family: 4, timeout: 25_000 },
   headersTimeout: 60_000,
@@ -74,6 +83,7 @@ function getConfig() {
   return {
     baseUrl: (process.env.ASBDATA_BASE_URL || "https://asbdata.com").replace(/\/$/, ""),
     token: process.env.ASBDATA_TOKEN || process.env.ASBDATA_API_TOKEN || "",
+    balancePath: process.env.ASBDATA_BALANCE_PATH || "/api/user/",
     platformMarkupNgn: Number(process.env.ASBDATA_PLATFORM_MARKUP_NGN ?? 0),
     airtimeType: process.env.ASBDATA_AIRTIME_TYPE || "VTU",
   };
@@ -100,6 +110,35 @@ function readNumber(v: unknown): number | null {
     const n = Number(v.replace(/,/g, ""));
     return Number.isFinite(n) ? n : null;
   }
+  return null;
+}
+
+function findBalanceNgn(value: unknown): number | null {
+  if (!isRecord(value)) return readNumber(value);
+
+  for (const key of [
+    "balance",
+    "Balance",
+    "account_balance",
+    "Account_Balance",
+    "wallet_balance",
+    "Wallet_Balance",
+    "amount",
+    "available_balance",
+    "ledger_balance",
+  ]) {
+    const found = readNumber(value[key]);
+    if (found != null) return found;
+  }
+
+  for (const nestedKey of ["data", "user", "account", "wallet", "profile"]) {
+    const nested = value[nestedKey];
+    if (isRecord(nested)) {
+      const found = findBalanceNgn(nested);
+      if (found != null) return found;
+    }
+  }
+
   return null;
 }
 
@@ -350,6 +389,57 @@ async function loadAllPlans(): Promise<PlanCache> {
 
   planCache = { expiresAt: Date.now() + PLAN_TTL_MS, plans, byCode };
   return planCache;
+}
+
+export async function getAsbdataBalance(): Promise<AsbBalanceResult> {
+  const cfg = getConfig();
+  if (!isAsbdataConfigured()) {
+    return {
+      provider: "asbdata",
+      configured: false,
+      success: false,
+      message: "ASBDATA token is not configured.",
+    };
+  }
+
+  try {
+    const { status, json, text } = await request("GET", cfg.balancePath);
+    if (status >= 400) {
+      return {
+        provider: "asbdata",
+        configured: true,
+        success: false,
+        message: text && text.length < 200 ? text : `ASBDATA balance failed (${status})`,
+        raw: json,
+      };
+    }
+
+    const balanceNgn = findBalanceNgn(json);
+    if (balanceNgn == null) {
+      return {
+        provider: "asbdata",
+        configured: true,
+        success: false,
+        message: "ASBDATA balance response did not include a recognizable balance field.",
+        raw: json,
+      };
+    }
+
+    return {
+      provider: "asbdata",
+      configured: true,
+      success: true,
+      balanceKobo: nairaToKobo(balanceNgn),
+      raw: json,
+    };
+  } catch (err) {
+    return {
+      provider: "asbdata",
+      configured: true,
+      success: false,
+      message: transportMessage(err),
+    };
+  }
 }
 
 /** Static fallback plans when ASBDATA is not configured. */

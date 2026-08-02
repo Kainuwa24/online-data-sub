@@ -130,3 +130,55 @@ model ProviderEvent {
 
   @@index([provider, reference])
 }
+model AdminUser {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  role      String   @default("READ_ONLY") // READ_ONLY | OPERATOR | FINANCE | OWNER
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role, active])
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  actorAdminId String
+  action       String
+  targetType   String
+  targetId     String?
+  beforeJson   String?
+  afterJson    String?
+  metadata     String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([actorAdminId, createdAt])
+  @@index([targetType, targetId])
+}
+
+model WalletAdjustment {
+  id                   String    @id @default(cuid())
+  userId               String
+  type                 String // CREDIT | DEBIT
+  amountKobo           Int
+  reason               String
+  evidence             String?
+  reference            String    @unique
+  status               String    @default("PENDING") // PENDING | APPROVED | REJECTED | APPLIED
+  createdByAdminId     String
+  approvedByAdminId    String?
+  rejectedByAdminId    String?
+  appliedByAdminId     String?
+  appliedTransactionId String?
+  rejectionReason      String?
+  createdAt            DateTime  @default(now())
+  approvedAt           DateTime?
+  rejectedAt           DateTime?
+  appliedAt            DateTime?
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([createdByAdminId, createdAt])
+}

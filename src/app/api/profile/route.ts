@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { isAdminUser } from "@/lib/admin";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -15,13 +16,13 @@ export async function GET() {
     hasPin: Boolean(user.pinHash),
     hasBvn: Boolean(user.bvn && user.bvn.replace(/\D/g, "").length === 11),
     hasNin: Boolean(user.nin && user.nin.replace(/\D/g, "").length === 11),
+    isAdmin: await isAdminUser(user),
     profileComplete: Boolean(
       user.phone &&
         user.pinHash &&
         ((user.bvn && user.bvn.replace(/\D/g, "").length === 11) ||
           (user.nin && user.nin.replace(/\D/g, "").length === 11)),
     ),
-    // Masked for display
     bvnMasked: user.bvn ? `*******${user.bvn.slice(-4)}` : null,
     ninMasked: user.nin ? `*******${user.nin.slice(-4)}` : null,
   });

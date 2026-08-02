@@ -5,7 +5,7 @@ import { PrismaClient } from "@prisma/client";
  * change (e.g. missing User.passwordHash). Bump SCHEMA_VERSION when you add
  * fields/models so the singleton is recreated.
  */
-const SCHEMA_VERSION = 3; // 3 = passwordHash on User
+const SCHEMA_VERSION = 4; // 4 = admin/audit/adjustment models
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -36,7 +36,12 @@ function isStaleClient(client: PrismaClient | undefined): boolean {
     }
   }
 
-  // Older check: magic link model must exist
+  // Admin control center models must exist after schema v4.
+  if (typeof (client as unknown as { walletAdjustment?: unknown }).walletAdjustment === "undefined") {
+    return true;
+  }
+
+  // Older check: magic link model must exist.
   if (typeof (client as unknown as { magicLinkToken?: unknown }).magicLinkToken === "undefined") {
     return true;
   }

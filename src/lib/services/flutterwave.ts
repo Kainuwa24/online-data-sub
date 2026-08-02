@@ -43,6 +43,16 @@ export type FlutterwaveVerifiedTransaction = {
   payload: Record<string, unknown>;
 };
 
+export type FlutterwaveBalanceResult = {
+  provider: "flutterwave";
+  configured: boolean;
+  success: boolean;
+  currency: string;
+  balanceKobo?: number;
+  message?: string;
+  raw?: unknown;
+};
+
 function readString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -54,10 +64,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function readNumber(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string") {
-    const parsed = Number(value.trim());
+    const parsed = Number(value.trim().replace(/,/g, ""));
     if (Number.isFinite(parsed)) return parsed;
   }
   return undefined;
+}
+
+function toKobo(amount: number) {
+  return Math.round(amount * 100);
 }
 
 function getFlutterwaveSecretKey() {
@@ -129,6 +143,87 @@ export function verifyFlutterwaveWebhook(
   if (!signature) return false;
   const computed = createHmac("sha256", secretHash).update(rawBody).digest("base64");
   return computed === signature || signature === secretHash;
+}
+
+export async function getFlutterwaveBalance(currency = "NGN"): Promise<FlutterwaveBalanceResult> {
+  const secretKey = getFlutterwaveSecretKey();
+  const normalizedCurrency = currency.trim().toUpperCase() || "NGN";
+  if (!secretKey) {
+    return {
+      provider: "flutterwave",
+      configured: false,
+      success: false,
+      currency: normalizedCurrency,
+      message: "Flutterwave secret key is not configured.",
+    };
+  }
+
+  try {
+    const res = await undiciFetch(
+      `${getFlutterwaveBaseUrl()}/balances/${encodeURIComponent(normalizedCurrency)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          Accept: "application/json",
+        },
+        dispatcher: flwAgent,
+      },
+    );
+
+    const text = await res.text();
+    let parsed: unknown = null;
+    try {
+      parsed = text ? JSON.parse(text) : null;
+    } catch {
+      parsed = { raw: text };
+    }
+
+    const body = isRecord(parsed) ? parsed : {};
+    const data = isRecord(body.data) ? body.data : {};
+    if (!res.ok || readString(body.status).toLowerCase() !== "success") {
+      return {
+        provider: "flutterwave",
+        configured: true,
+        success: false,
+        currency: normalizedCurrency,
+        message: readString(body.message) || `Flutterwave balance failed (${res.status})`,
+        raw: parsed,
+      };
+    }
+
+    const balance =
+      readNumber(data.available_balance) ??
+      readNumber(data.availableBalance) ??
+      readNumber(data.balance) ??
+      readNumber(data.ledger_balance);
+    if (balance == null) {
+      return {
+        provider: "flutterwave",
+        configured: true,
+        success: false,
+        currency: normalizedCurrency,
+        message: "Flutterwave balance response did not include a recognizable balance field.",
+        raw: parsed,
+      };
+    }
+
+    return {
+      provider: "flutterwave",
+      configured: true,
+      success: true,
+      currency: readString(data.currency).toUpperCase() || normalizedCurrency,
+      balanceKobo: toKobo(balance),
+      raw: parsed,
+    };
+  } catch (error) {
+    return {
+      provider: "flutterwave",
+      configured: true,
+      success: false,
+      currency: normalizedCurrency,
+      message: error instanceof Error ? error.message : "Flutterwave balance request failed.",
+    };
+  }
 }
 
 export async function createFlutterwaveStaticVirtualAccount(input: {

@@ -87,6 +87,13 @@
 }
 
 @layer components {
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
   .app-shell {
     --app-header-space: max(5.75rem, calc(env(safe-area-inset-top, 0px) + 4.25rem));
     --app-bottom-nav-space: max(6.25rem, calc(env(safe-area-inset-bottom, 0px) + 5.5rem));
@@ -715,5 +722,3 @@ html.dark .gold-watch-card .text-brand-blue,
 html.dark .gold-price-card .text-brand-blue {
   color: #f8d36f !important;
 }
-
-

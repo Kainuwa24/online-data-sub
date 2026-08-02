@@ -125,7 +125,7 @@ export function DataPageClient({
   return (
     <div className="animate-fade-up">
       <TopBar subtitle="Buy" title="Data & Airtime" initial="D" />
-      <div className="px-5">
+      <div className="px-5 pt-3 sm:pt-2">
         <div className="card p-1.5 flex gap-1 mb-5">
           {(["data", "airtime"] as const).map((t) => (
             <button

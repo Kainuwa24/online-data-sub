@@ -94,15 +94,26 @@ export default function WatchPage() {
           </div>
         ) : gold ? (
           <div className="gold-price-card rounded-[22px] p-5 mt-2">
-            <div className="text-[11px] uppercase tracking-wide text-brand-gold font-body font-semibold">
-              Gold · per gram (XAU)
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[11px] uppercase tracking-wide text-brand-gold font-body font-semibold">
+                Gold per gram (XAU)
+              </div>
+              <span className="rounded-full border border-white/30 px-2 py-0.5 text-[10px] font-semibold text-brand-gold">
+                {gold.mocked ? "Fallback" : "Live"}
+              </span>
             </div>
             <div className="text-[28px] font-display font-extrabold mt-1.5">
-              ₦{gold.pricePerGramNgn.toLocaleString()}
+              {"\u20A6"}{gold.pricePerGramNgn.toLocaleString()}
             </div>
-            <div className="flex items-center gap-1.5 mt-1.5 text-brand-blue text-xs font-mono">
-              <ArrowUpRight size={14} /> {gold.changePercent}% today
+            <div className={`flex items-center gap-1.5 mt-1.5 text-xs font-mono ${gold.changePercent >= 0 ? "text-brand-blue" : "text-brand-red"}`}>
+              {gold.changePercent >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+              {gold.changePercent}% today
             </div>
+            {gold.asOf ? (
+              <div className="mt-1 text-[10px] text-gray-400 font-mono">
+                Updated {new Date(gold.asOf).toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -111,7 +122,7 @@ export default function WatchPage() {
             Nigerian Exchange (NGX)
           </span>
           <span className="text-[10px] text-gray-400 border border-gray-200 dark:border-gray-700 rounded-full px-2 py-0.5 font-body">
-            Watch only
+            {stocks.some((s) => s.source && s.source !== "fallback") ? "Live quotes" : "Watch only"}
           </span>
         </div>
         {showStocksSkeleton ? (
@@ -132,11 +143,11 @@ export default function WatchPage() {
                 >
                   <div>
                     <div className="text-[13.5px] font-medium font-body">{s.name}</div>
-                    <div className="text-[11px] text-gray-400 font-mono">{s.ticker}</div>
+                    <div className="text-[11px] text-gray-400 font-mono">{s.symbol || s.ticker}</div>
                   </div>
                   <div className="text-right">
                     <div className="text-[13px] font-mono">
-                      ₦{(s.priceKobo / 100).toLocaleString()}
+                      {"\u20A6"}{(s.priceKobo / 100).toLocaleString()}
                     </div>
                     <div
                       className={`text-[11.5px] font-mono flex items-center gap-1 justify-end ${

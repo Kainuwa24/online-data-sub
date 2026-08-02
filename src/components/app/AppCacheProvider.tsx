@@ -56,6 +56,7 @@ export type ProfileSnapshot = {
   email: string | null;
   bvnMasked: string | null;
   ninMasked: string | null;
+  isAdmin?: boolean;
 };
 
 export type NotificationSnapshot = {
@@ -78,12 +79,18 @@ export type WatchSnapshot = {
   gold: {
     pricePerGramNgn: number;
     changePercent: number;
+    mocked?: boolean;
+    source?: string;
+    asOf?: string;
   } | null;
   stocks: {
     ticker: string;
+    symbol?: string;
     name: string;
     priceKobo: number;
     changePercent: number;
+    source?: string;
+    asOf?: string;
   }[];
 };
 
@@ -171,7 +178,7 @@ function writePersistedShell(shell: PersistedShell) {
     }
     window.localStorage.setItem(PERSIST_KEY, JSON.stringify(shell));
   } catch {
-    // Quota / private mode — ignore
+    // Quota / private mode - ignore
   }
 }
 

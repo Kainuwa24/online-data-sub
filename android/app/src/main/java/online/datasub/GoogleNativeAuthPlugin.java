@@ -85,7 +85,7 @@ public class GoogleNativeAuthPlugin extends Plugin {
     private void handleSignInResult(PluginCall call, ActivityResult result) {
         if (call == null) return;
 
-        if (result.getResultCode() != Activity.RESULT_OK) {
+        if (result.getData() == null) {
             call.reject("Google sign-in was cancelled");
             return;
         }
@@ -105,7 +105,12 @@ public class GoogleNativeAuthPlugin extends Plugin {
             ret.put("name", account.getDisplayName());
             call.resolve(ret);
         } catch (ApiException e) {
-            call.reject("Google sign-in failed", e);
+            if (result.getResultCode() != Activity.RESULT_OK) {
+                call.reject("Google sign-in failed with status " + e.getStatusCode() + ". Check the Android OAuth package name and SHA certificate fingerprints.", e);
+                return;
+            }
+
+            call.reject("Google sign-in failed with status " + e.getStatusCode(), e);
         }
     }
 }

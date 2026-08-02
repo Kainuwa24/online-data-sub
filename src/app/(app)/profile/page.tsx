@@ -17,6 +17,8 @@ import {
   ScrollText,
   Trash2,
   ShieldCheck,
+  LayoutDashboard,
+  ArrowRight,
 } from "lucide-react";
 import { useAppCache } from "@/components/app/AppCacheProvider";
 import { ScreenHeader } from "@/components/layout/ScreenHeader";
@@ -28,12 +30,14 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState(profile?.phone ?? "");
   const [dark, setDark] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(Boolean(profile?.isAdmin));
 
   async function refreshProfile(force = false) {
     if (!force && profile) {
       setName(profile.name || "");
       setPhone(profile.phone || "");
       setDark(document.documentElement.classList.contains("dark"));
+      setIsAdmin(Boolean(profile.isAdmin));
       return;
     }
 
@@ -49,7 +53,9 @@ export default function ProfilePage() {
         email: d.email || null,
         bvnMasked: d.bvnMasked || null,
         ninMasked: d.ninMasked || null,
+        isAdmin: Boolean(d.isAdmin),
       });
+      setIsAdmin(Boolean(d.isAdmin));
     } finally {
       setRefreshing(false);
       setDark(document.documentElement.classList.contains("dark"));
@@ -57,8 +63,9 @@ export default function ProfilePage() {
   }
 
   useEffect(() => {
-    void refreshProfile();
-  }, [profile]);
+    void refreshProfile(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function toggleDark() {
     const next = !dark;
@@ -126,6 +133,26 @@ export default function ProfilePage() {
             <div className="text-xs text-brand-muted font-body mt-0.5">{phone || "-"}</div>
           </div>
         </div>
+
+        {isAdmin ? (
+          <Link
+            href="/admin"
+            className="mb-4 flex items-center gap-3 rounded-2xl bg-brand-blue px-4 py-4 text-white shadow-glow active:scale-[0.99] transition-transform"
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/14 border border-white/20">
+              <LayoutDashboard size={20} strokeWidth={2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/70">
+                Owner tools
+              </div>
+              <div className="mt-0.5 text-sm font-display font-bold truncate">
+                Admin Control Center
+              </div>
+            </div>
+            <ArrowRight size={18} className="shrink-0 text-white/80" />
+          </Link>
+        ) : null}
 
         <div className="card overflow-hidden">
           {rows.map((r, i) => {
