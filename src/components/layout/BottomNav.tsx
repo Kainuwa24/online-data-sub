@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Wifi, Receipt, TrendingUp, History } from "lucide-react";
+import { Home, Wifi, ArrowLeftRight, TrendingUp, History } from "lucide-react";
 
 const ITEMS = [
   { href: "/home", icon: Home, label: "Home" },
   { href: "/data", icon: Wifi, label: "Data" },
-  { href: "/bills", icon: Receipt, label: "Bills" },
+  { href: "/exchange", icon: ArrowLeftRight, label: "Exchange" },
   { href: "/watch", icon: TrendingUp, label: "Watch" },
   { href: "/history", icon: History, label: "History" },
 ];

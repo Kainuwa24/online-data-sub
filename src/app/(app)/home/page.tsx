@@ -12,6 +12,7 @@ import {
   Sparkles,
   ChevronRight,
   TrendingUp,
+  ArrowLeftRight,
   Plus,
   Clock3,
 } from "lucide-react";
@@ -208,8 +209,8 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Gold banner — always available */}
-      <div className="px-5 pt-5">
+      {/* Watch banners — gold/stocks + FX */}
+      <div className="px-5 pt-5 space-y-2.5">
         <Link
           href="/watch"
           className="gold-watch-card flex items-center justify-between rounded-2xl px-4 py-3.5 active:scale-[0.99] transition-transform shadow-soft"
@@ -224,6 +225,26 @@ export default function HomePage() {
               </div>
               <div className="text-sm font-display font-bold text-brand-ink mt-0.5 truncate">
                 Gold & markets — watch only
+              </div>
+            </div>
+          </div>
+          <ChevronRight size={18} className="text-brand-gold shrink-0" />
+        </Link>
+
+        <Link
+          href="/exchange"
+          className="gold-watch-card flex items-center justify-between rounded-2xl px-4 py-3.5 active:scale-[0.99] transition-transform shadow-soft"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="gold-watch-icon h-10 w-10 rounded-xl shadow-soft flex items-center justify-center shrink-0">
+              <ArrowLeftRight size={18} className="text-brand-gold" strokeWidth={2} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-[0.08em] font-semibold text-brand-gold font-body">
+                FX · to naira
+              </div>
+              <div className="text-sm font-display font-bold text-brand-ink mt-0.5 truncate">
+                USD, GBP, EUR & more → ₦
               </div>
             </div>
           </div>
