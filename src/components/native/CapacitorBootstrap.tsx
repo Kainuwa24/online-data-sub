@@ -25,7 +25,7 @@ export function CapacitorBootstrap() {
         // drawn under clock / battery icons. Safe-area CSS covers iOS / edge cases.
         await StatusBar.setOverlaysWebView({ overlay: false }).catch(() => undefined);
         await StatusBar.setStyle({ style: Style.Dark }).catch(() => undefined);
-        await StatusBar.setBackgroundColor({ color: "#F7F8FA" }).catch(() => undefined);
+        await StatusBar.setBackgroundColor({ color: "#F7F7FB" }).catch(() => undefined);
         await SplashScreen.hide().catch(() => undefined);
 
         document.documentElement.classList.add("capacitor-native");

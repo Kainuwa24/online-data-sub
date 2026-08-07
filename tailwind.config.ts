@@ -18,7 +18,7 @@ const config: Config = {
           ink: "#0F172A",
           muted: "#64748B",
           line: "#E8ECF2",
-          surface: "#F4F6FA",
+          surface: "#F4F4FA",
         },
       },
       fontFamily: {
@@ -39,8 +39,9 @@ const config: Config = {
         "4xl": "2rem",
       },
       backgroundImage: {
+        // Keep in sync with --mesh-light in globals.css
         "mesh-light":
-          "radial-gradient(ellipse 80% 50% at 20% -10%, rgba(44, 90, 160, 0.12), transparent), radial-gradient(ellipse 60% 40% at 100% 0%, rgba(163, 52, 46, 0.06), transparent), linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%)",
+          "radial-gradient(ellipse 90% 55% at 15% -8%, rgba(124, 92, 196, 0.07), transparent 70%), linear-gradient(180deg, #F9F8FC 0%, #EEEEF7 52%, #F9F8FC 100%)",
         "wallet-card":
           "linear-gradient(145deg, #3B6BB8 0%, #2C5AA0 42%, #1A3A6B 100%)",
         "gold-card":

@@ -136,7 +136,7 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen px-6 flex items-center justify-center bg-[#F7F8FA]">
+    <div className="min-h-screen px-6 flex items-center justify-center bg-[#F7F7FB]">
       <div className="w-full max-w-sm text-center auth-panel">
         <div className="mx-auto h-14 w-14 rounded-full bg-brand-blueSoft flex items-center justify-center mb-4">
           {state === "unavailable" ? (
