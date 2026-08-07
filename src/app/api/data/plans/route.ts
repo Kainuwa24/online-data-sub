@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCachedDataPlans } from "@/lib/plans-cache";
+import { getPricedDataPlans } from "@/lib/plans-cache";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const network = req.nextUrl.searchParams.get("network") || undefined;
-  let plans = await getCachedDataPlans();
-  if (network) {
-    plans = plans.filter((p) => p.network === network);
-  }
+  const priced = await getPricedDataPlans(network);
+
+  // Margin internals stay server-side; customers see the retail price only.
+  const plans = priced.map(({ marginKobo, ruleId, costKobo, ...plan }) => plan);
 
   return NextResponse.json(
     {
@@ -18,8 +18,9 @@ export async function GET(req: NextRequest) {
     },
     {
       headers: {
-        // Browser + CDN can reuse; still revalidate in background
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        // Pricing is operator-controlled and must not be held in a shared
+        // cache — a margin change has to reach customers on the next request.
+        "Cache-Control": "private, no-store",
       },
     },
   );

@@ -25,6 +25,8 @@ export type AsbDataPlan = {
   size: string;
   validity: string;
   priceKobo: number;
+  /** Vendor wholesale price before any operator margin. */
+  costKobo: number;
   name: string;
   planType: string;
 };
@@ -382,6 +384,7 @@ async function loadAllPlans(): Promise<PlanCache> {
       size,
       validity,
       priceKobo: nairaToKobo(retailNgn),
+      costKobo: nairaToKobo(amount),
       name: rawType ? `${net} ${size} · ${rawType}` : `${net} ${size}`,
       planType,
     });
@@ -444,11 +447,11 @@ export async function getAsbdataBalance(): Promise<AsbBalanceResult> {
 
 /** Static fallback plans when ASBDATA is not configured. */
 const FALLBACK_PLANS: AsbDataPlan[] = [
-  { network: "MTN", variationCode: "demo-mtn-1gb", size: "1GB", validity: "30 days", priceKobo: 45000, name: "MTN 1GB", planType: "STANDARD" },
-  { network: "MTN", variationCode: "demo-mtn-2gb", size: "2GB", validity: "30 days", priceKobo: 90000, name: "MTN 2GB", planType: "STANDARD" },
-  { network: "Airtel", variationCode: "demo-airtel-1gb", size: "1GB", validity: "30 days", priceKobo: 45000, name: "Airtel 1GB", planType: "STANDARD" },
-  { network: "Glo", variationCode: "demo-glo-1.5gb", size: "1.5GB", validity: "30 days", priceKobo: 50000, name: "Glo 1.5GB", planType: "STANDARD" },
-  { network: "9mobile", variationCode: "demo-9m-1gb", size: "1GB", validity: "30 days", priceKobo: 45000, name: "9mobile 1GB", planType: "STANDARD" },
+  { network: "MTN", variationCode: "demo-mtn-1gb", size: "1GB", validity: "30 days", priceKobo: 45000, costKobo: 45000, name: "MTN 1GB", planType: "STANDARD" },
+  { network: "MTN", variationCode: "demo-mtn-2gb", size: "2GB", validity: "30 days", priceKobo: 90000, costKobo: 90000, name: "MTN 2GB", planType: "STANDARD" },
+  { network: "Airtel", variationCode: "demo-airtel-1gb", size: "1GB", validity: "30 days", priceKobo: 45000, costKobo: 45000, name: "Airtel 1GB", planType: "STANDARD" },
+  { network: "Glo", variationCode: "demo-glo-1.5gb", size: "1.5GB", validity: "30 days", priceKobo: 50000, costKobo: 50000, name: "Glo 1.5GB", planType: "STANDARD" },
+  { network: "9mobile", variationCode: "demo-9m-1gb", size: "1GB", validity: "30 days", priceKobo: 45000, costKobo: 45000, name: "9mobile 1GB", planType: "STANDARD" },
 ];
 
 export async function listDataPlans(network?: string): Promise<AsbDataPlan[]> {

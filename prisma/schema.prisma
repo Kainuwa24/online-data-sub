@@ -194,3 +194,36 @@ model WalletAdjustment {
   @@index([status, createdAt])
   @@index([createdByAdminId, createdAt])
 }
+
+/// Operator-managed profit margin applied to wholesale data plan prices.
+/// Most specific match wins: plan code > (network + plan type) > network > global.
+model PricingRule {
+  id           String   @id @default(cuid())
+  /// "GLOBAL" | "NETWORK" | "PLAN_TYPE" | "PLAN"
+  scope        String
+  /// MTN | Airtel | Glo | 9mobile — null for GLOBAL
+  network      String?
+  /// Normalized plan type (SME, GIFTING, …) — only for PLAN_TYPE scope
+  planType     String?
+  /// ASBDATA plan code — only for PLAN scope
+  variationCode String?
+  /// Margin as basis points (250 = 2.5%), applied to the wholesale price
+  marginBps    Int      @default(0)
+  /// Flat margin in kobo, added after the percentage margin
+  marginKobo   Int      @default(0)
+  /// Never charge below wholesale + this floor (kobo)
+  minMarginKobo Int     @default(0)
+  /// Optional cap on total margin (kobo); null = uncapped
+  maxMarginKobo Int?
+  /// Round the retail price up to this kobo multiple (e.g. 1000 = nearest ₦10)
+  roundToKobo  Int      @default(0)
+  active       Boolean  @default(true)
+  note         String?
+  createdByAdminId String
+  updatedByAdminId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([scope, network, planType, variationCode])
+  @@index([active, scope])
+}
